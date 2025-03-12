@@ -1,11 +1,18 @@
-import { Schema, models, model } from "mongoose";
+import { Schema, model, models } from "mongoose";
+import { Order } from "../types/order.type";
 
-const orderSchema = new Schema({
-  customerId: { type: String, required: true },
+const orderSchema = new Schema<Order>({
+  customerId: { type: Number, required: true },
   products: [
-    { productId: String, quantity: Number, price: Number }
+    {
+      productId: { type: String, required: true },
+      quantity: { type: Number, required: true, min: 1 },
+      unitPrice: { type: Number, required: true, min: 0 },
+      unitPriceBeforeDiscount: { type: Number, min: 0 },
+    }
   ],
-  totalAmount: { type: Number },
-});
+  totalAmount: { type: Number, required: true, min: 0 },
+  createdAt: { type: Date, required: true }
+}, { timestamps: true });
 
-export default models.order || model("order", orderSchema);
+export default models.Order || model("Order", orderSchema);

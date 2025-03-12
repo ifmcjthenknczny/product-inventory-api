@@ -4,7 +4,7 @@ import { createOrder } from "../services/order.service";
 const router = Router();
 
 interface CreateOrderBody {
-  customerId: string;
+  customerId: number;
   products: { productId: string; quantity: number }[];
 }
 
@@ -13,7 +13,7 @@ interface CreateOrderBody {
 router.post(
   "/",
   async (req: Request<{}, {}, CreateOrderBody>, res: Response) => {
-    res.json(await createOrder(req.body.customerId, req.body.products));
+    res.json(await createOrder(req.body));
   }
 );
 

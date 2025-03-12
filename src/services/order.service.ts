@@ -1,26 +1,63 @@
-import Order from "../models/order.model";
+import OrderModel from "../models/order.model";
 import ProductModel from "../models/product.model";
+import { Item, Order } from "../types/order.type";
 import { Product } from "../types/product.type";
+import { determineSeason } from "../utils/holiday";
+import { calculateProductPriceCoefficient } from "../utils/price";
+import { sellProduct } from "./product.service";
+import { toDay } from "../utils/date";
+import { chunkify } from "../utils/array";
+import validateSchema from "../utils/validate";
+import { createOrderSchema } from "../schema/order.schema";
+import CustomerModel from "../models/customer.model";
 
-// TODO: return order
-// TODO: services are actually controllers?
+const JOB_CHUNK_MAX_SIZE = 10;
 
-export const createOrder = async (customerId: string, products: Product[]) => {
-  let totalAmount = 0;
+type CreateOrderBody = {
+    customerId: number;
+    products: Item[];
+};
 
-  for (const item of products) {
-    const product = await ProductModel.findById(item._id);
-    if (!product || product.stock < item.quantity) {
-        throw new Error("Insufficient stock");
+export const createOrder = async (data: CreateOrderBody) => {
+    const { customerId, products } = validateSchema<CreateOrderBody>(data, createOrderSchema);
+    // TODO: schema
+    // TODO: return order
+    const date = new Date();
+    let totalAmount = 0;
+    const customer = await CustomerModel.findById(customerId);
+    if (!customer) {
+        throw new Error(`Customer with ID ${customerId} not found`);
     }
-    // TODO: quanity in order
-    // TODO: what if there is no product in db
+    const dbOrderProducts: Order["products"] = [];
+    const season = determineSeason(toDay(date));
 
-    product.stock -= item.quantity;
-    await product.save();
+    for (const orderProduct of products) {
+        // TODO: find many products
+        const product = await ProductModel.findById<Product>(orderProduct.productId);
+        if (!product) {
+            throw new Error(`Product of id ${orderProduct.productId} is unavailable`);
+        }
+        if (product.stock < orderProduct.quantity) {
+            throw new Error(`Insufficient stock of product id ${orderProduct.productId}`);
+        }
+        const priceCoefficient = calculateProductPriceCoefficient({ location: customer.location, productQuantity: orderProduct.quantity, season });
+        const unitPrice = Math.ceil(priceCoefficient * product.price);
 
-    totalAmount += item.quantity * product.price;
-  }
+        // TODO: dodać pole - zastosowane modyfikatory cen?
 
-  return await Order.create({ customerId, products, totalAmount });
+        dbOrderProducts.push({ ...orderProduct, unitPrice, unitPriceBeforeDiscount: product.price });
+        totalAmount += orderProduct.quantity * unitPrice;
+    }
+
+    const sellProductChunks = chunkify(
+        products.map((product) => sellProduct(product.productId, product.quantity)),
+        JOB_CHUNK_MAX_SIZE
+    );
+
+    for (const chunk of sellProductChunks) {
+        // TODO: blocked quantity i odjąć je na końcu albo uwolnić, albo założyć jakąś blokadę na bazę danych?
+        await Promise.all(sellProductChunks);
+    }
+
+    return await OrderModel.create<Order>({ customerId, products: dbOrderProducts, totalAmount, createdAt: date });
 };

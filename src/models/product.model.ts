@@ -1,9 +1,10 @@
 import { Schema, models, model } from "mongoose";
+import { Product } from "../types/product.type";
 
-const productSchema = new Schema({
+const productSchema = new Schema<Product>({
 	name: { type: String, required: true, maxlength: 50 },
-	description: { type: String },
-	price: { type: Number, required: true, min: 0 },
+	description: { type: String, required: true, maxLength: 50 },
+	price: { type: Number, required: true, min: 1 }, // in cents
 	stock: { type: Number, required: true, min: 0 },
   });
 
