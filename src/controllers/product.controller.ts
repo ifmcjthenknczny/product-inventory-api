@@ -4,6 +4,7 @@ import { createProduct, getAllProducts, restockProduct, sellProduct } from "../s
 import { Product } from "../types/product.type";
 import { createProductSchema, updateProductStockBodySchema, updateProductStockQuerySchema } from "../schema/product.schema";
 import { Item } from "../types/order.type";
+import { toCents } from "../utils/price";
 
 export type UpdateStockQuery = {
     id: number;
@@ -17,9 +18,16 @@ export const getAllProductsController = async (req: Request, res: Response) => {
     res.json(await getAllProducts());
 };
 
+const toDbProduct = (product: Product): Product => {
+    return {
+        ...product,
+        price: toCents(product.price)
+    }
+}
+
 export const createProductController = async (req: Request, res: Response) => {
     const product = validateSchema<Omit<Product, "_id">>(req.body, createProductSchema);
-    res.status(201).json(await createProduct(product));
+    res.status(201).json(await createProduct(toDbProduct(product)));
 };
 
 export const restockProductController = async (req: Request, res: Response) => {

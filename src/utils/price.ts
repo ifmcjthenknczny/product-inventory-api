@@ -1,9 +1,5 @@
-// TODO: apply this in handler
-// TODO: check if it is in line with requirements
-
 import { Season } from "./holiday"
 import { Location } from "../types/customer.type";
-
 
 export type Cents = number
 
