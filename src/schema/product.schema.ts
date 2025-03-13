@@ -8,12 +8,10 @@ export const createProductSchema = Joi.object({
     stock: Joi.number().integer().required()
 }).required()
 
-export const restockProductSchema = Joi.object({
-    id: idSchema.required(),
-    amount: quantitySchema.required()
-}).required()
+export const updateProductStockQuerySchema = Joi.object({
+    id: idSchema.required()
+})
 
-export const sellProductSchema = Joi.object({
-    id: idSchema.required(),
-    amount: quantitySchema.required()
-}).required()
+export const updateProductStockBodySchema = Joi.object({
+    quantity: quantitySchema.required()
+})

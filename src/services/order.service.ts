@@ -7,21 +7,11 @@ import { calculateProductPriceCoefficient } from "../utils/price";
 import { sellProduct } from "./product.service";
 import { toDay } from "../utils/date";
 import { chunkify } from "../utils/array";
-import validateSchema from "../utils/validate";
-import { createOrderSchema } from "../schema/order.schema";
 import CustomerModel from "../models/customer.model";
 
 const JOB_CHUNK_MAX_SIZE = 10;
 
-type CreateOrderBody = {
-    customerId: number;
-    products: Item[];
-};
-
-export const createOrder = async (data: CreateOrderBody) => {
-    const { customerId, products } = validateSchema<CreateOrderBody>(data, createOrderSchema);
-    // TODO: schema
-    // TODO: return order
+export const createOrder = async (customerId: number, products: Item[]): Promise<Order> => {
     const date = new Date();
     let totalAmount = 0;
     const customer = await CustomerModel.findById(customerId);
@@ -59,5 +49,6 @@ export const createOrder = async (data: CreateOrderBody) => {
         await Promise.all(sellProductChunks);
     }
 
-    return await OrderModel.create<Order>({ customerId, products: dbOrderProducts, totalAmount, createdAt: date });
+    const order = await OrderModel.create({ customerId, products: dbOrderProducts, totalAmount, createdAt: date });
+    return order.toObject()
 };

@@ -1,29 +1,24 @@
 import { Product } from "../types/product.type";
 
 import ProductModel from "../models/product.model";
+import { UpdateStockBody, UpdateStockQuery } from "../controllers/product.controller";
 
 export const getAllProducts = async () => {
     return await ProductModel.find<Product>();
-}
-
-export const createProduct = async (data: Omit<Product, '_id'>) => {
-    // TODO: schema
-    if (data.price <= 0) {
-        throw new Error("Price must be positive");
-    }
-    return await ProductModel.create<Product>(data);
 };
 
-export const restockProduct = async (id: string, amount: number) => {
-    // TODO: amount > 0
-    return await ProductModel.findByIdAndUpdate<Product>(id, { $inc: { stock: amount } }, { new: true });
+export const createProduct = async (product: Omit<Product, "_id">): Promise<Product> => {
+    return await ProductModel.create<Product>(product);
 };
 
-export const sellProduct = async (id: string, amount: number) => {
-    // TODO: amount > 0
+export const restockProduct = async (id: UpdateStockQuery["id"], quantity: UpdateStockBody["quantity"]) => {
+    return await ProductModel.findByIdAndUpdate<Product>(id, { $inc: { stock: quantity } }, { new: true });
+};
+
+export const sellProduct = async (id: UpdateStockQuery["id"], quantity: UpdateStockBody["quantity"]) => {
     const product = await ProductModel.findById<Product>(id);
-    if (!product || product.stock < amount) {
+    if (!product || product.stock < quantity) {
         throw new Error("Insufficient stock");
     }
-    return await ProductModel.findByIdAndUpdate<Product>(id, { $inc: { stock: -amount } }, { new: true });
+    return await ProductModel.findByIdAndUpdate<Product>(id, { $inc: { stock: -quantity } }, { new: true });
 };

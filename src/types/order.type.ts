@@ -1,7 +1,7 @@
 import { Cents } from "../utils/price";
 
 export type Item = {
-    productId: string;
+    productId: number;
     quantity: number;
 };
 
