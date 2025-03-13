@@ -8,7 +8,7 @@ export const getAllProducts = async () => {
 };
 
 export const createProduct = async (product: Omit<Product, "_id">): Promise<Product> => {
-    return await ProductModel.create<Product>(product);
+    return (await ProductModel.create<Product>(product)) as Product;
 };
 
 export const restockProduct = async (productId: UpdateStockQuery["id"], quantity: UpdateStockBody["quantity"]) => {

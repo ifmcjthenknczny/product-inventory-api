@@ -41,14 +41,14 @@ export const createOrder = async (customerId: number, products: Item[]): Promise
 
     const sellProductChunks = chunkify(
         products.map((product) => sellProduct(product.productId, product.quantity)),
-        JOB_CHUNK_MAX_SIZE
+        JOB_CHUNK_MAX_SIZE,
     );
 
     for (const chunk of sellProductChunks) {
         // TODO: blocked quantity i odjąć je na końcu albo uwolnić, albo założyć jakąś blokadę na bazę danych?
-        await Promise.all(sellProductChunks);
+        await Promise.all(chunk);
     }
 
     const order = await OrderModel.create({ customerId, products: dbOrderProducts, totalAmount, createdAt: date });
-    return order.toObject()
+    return order.toObject() as Order;
 };
