@@ -11,14 +11,14 @@ export const createProduct = async (product: Omit<Product, "_id">): Promise<Prod
     return await ProductModel.create<Product>(product);
 };
 
-export const restockProduct = async (id: UpdateStockQuery["id"], quantity: UpdateStockBody["quantity"]) => {
-    return await ProductModel.findByIdAndUpdate<Product>(id, { $inc: { stock: quantity } }, { new: true });
+export const restockProduct = async (productId: UpdateStockQuery["id"], quantity: UpdateStockBody["quantity"]) => {
+    return await ProductModel.findByIdAndUpdate<Product>(productId, { $inc: { stock: quantity } }, { new: true });
 };
 
-export const sellProduct = async (id: UpdateStockQuery["id"], quantity: UpdateStockBody["quantity"]) => {
-    const product = await ProductModel.findById<Product>(id);
+export const sellProduct = async (productId: UpdateStockQuery["id"], quantity: UpdateStockBody["quantity"]) => {
+    const product = await ProductModel.findById<Product>(productId);
     if (!product || product.stock < quantity) {
         throw new Error("Insufficient stock");
     }
-    return await ProductModel.findByIdAndUpdate<Product>(id, { $inc: { stock: -quantity } }, { new: true });
+    return await ProductModel.findByIdAndUpdate<Product>(productId, { $inc: { stock: -quantity } }, { new: true });
 };
