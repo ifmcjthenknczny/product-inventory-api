@@ -30,7 +30,7 @@ export const createProductController = async (req: Request, res: Response) => {
 };
 
 export const restockProductController = async (req: Request, res: Response) => {
-    const { id } = validateSchema<UpdateStockQuery>(req.query, updateProductStockQuerySchema);
+    const { id } = validateSchema<UpdateStockQuery>(req.params, updateProductStockQuerySchema);
     const { quantity } = validateSchema<UpdateStockBody>(req.body, updateProductStockBodySchema);
 
     const updatedProduct = await restockProduct(id, quantity);
@@ -38,7 +38,7 @@ export const restockProductController = async (req: Request, res: Response) => {
 };
 
 export const sellProductController = async (req: Request, res: Response) => {
-    const { id } = validateSchema<UpdateStockQuery>(req.query, updateProductStockQuerySchema);
+    const { id } = validateSchema<UpdateStockQuery>(req.params, updateProductStockQuerySchema);
     const { quantity } = validateSchema<UpdateStockBody>(req.body, updateProductStockBodySchema);
 
     const updatedProduct = await sellProduct(id, quantity);
