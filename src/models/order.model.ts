@@ -13,9 +13,8 @@ const orderModel = new Schema<Order>(
             },
         ],
         totalAmount: { type: Number, required: true, min: 0 },
-        createdAt: { type: Date, required: true },
     },
-    { timestamps: true },
+    { timestamps: true, strict: true },
 );
 
 export default models.Order<Order> || model<Order>("Order", orderModel);

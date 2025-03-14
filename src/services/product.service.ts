@@ -2,13 +2,21 @@ import { Product } from "../types/product.type";
 
 import ProductModel from "../models/product.model";
 import { UpdateStockBody, UpdateStockQuery } from "../controllers/product.controller";
+import { toCents } from "../utils/price";
+
+const toDbProduct = (product: Product): Product => {
+    return {
+        ...product,
+        price: toCents(product.price),
+    };
+};
 
 export const getAllProducts = async () => {
     return await ProductModel.find<Product>();
 };
 
 export const createProduct = async (product: Omit<Product, "_id">): Promise<Product> => {
-    return (await ProductModel.create<Product>(product)) as Product;
+    return (await ProductModel.create<Product>(toDbProduct(product))) as Product;
 };
 
 export const restockProduct = async (productId: UpdateStockQuery["id"], quantity: UpdateStockBody["quantity"]) => {
