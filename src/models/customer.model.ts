@@ -7,7 +7,7 @@ const customerModel = new Schema<Customer>(
         name: { type: String, required: true },
         location: { type: String, required: true },
     },
-    { timestamps: true, strict: true },
+    { timestamps: true, strict: true, versionKey: false },
 );
 
 const CustomerModel: Model<Customer> = models.Customer || model<Customer>("customer", customerModel);

@@ -21,7 +21,7 @@ const orderModel = new Schema<Order>(
         ],
         totalAmount: { type: Number, required: true, min: 0 },
     },
-    { timestamps: true, strict: true },
+    { timestamps: true, strict: true, versionKey: false },
 );
 
 export default models.Order<Order> || model<Order>("Order", orderModel);

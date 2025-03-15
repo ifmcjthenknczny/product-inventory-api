@@ -6,14 +6,16 @@ import { omit } from "../utils/common";
 import { OrderItem } from "../types/order.type";
 import { chunkify } from "../utils/array";
 import ProductModel from "../models/product.model";
+import { findNextId } from "../utils/db";
 
 const MAX_ASYNC_CHUNK_SIZE = 20;
 
 export type ProductLookupObject = Record<string, Omit<Product, "_id">>;
 
-const toDbCreateProduct = (product: CreateProduct): CreateProduct => {
+const toDbCreateProduct = async (product: CreateProduct): Promise<Omit<Product, "reservedStock">> => {
     return {
         ...product,
+        _id: await findNextId(ProductModel),
         unitPrice: toCents(product.unitPrice),
     };
 };
@@ -32,7 +34,8 @@ export const getAllProducts = async () => {
 };
 
 export const createProduct = async (product: CreateProduct): Promise<void> => {
-    await ProductModel.create<CreateProduct>(toDbCreateProduct(product));
+    const dbProduct = await toDbCreateProduct(product);
+    await ProductModel.create<CreateProduct>(dbProduct);
 };
 
 export const restockProduct = async (productId: UpdateStockQuery["id"], quantity: UpdateStockBody["quantity"]): Promise<void> => {

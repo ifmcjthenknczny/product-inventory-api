@@ -15,7 +15,7 @@ const productSchema = new Schema<Product>(
             },
         ],
     },
-    { timestamps: true, strict: true },
+    { timestamps: true, strict: true, versionKey: false },
 );
 
 const ProductModel: Model<Product> = models.product || model<Product>("product", productSchema);
