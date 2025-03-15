@@ -1,12 +1,12 @@
 import { Request, Response } from "express";
 import validateSchema from "../utils/validate";
-import { Item } from "../types/order.type";
+import { OrderItem } from "../types/order.type";
 import { createOrderSchema } from "../schema/order.schema";
 import { createOrder } from "../services/order.service";
 
 export type CreateOrderBody = {
     customerId: number;
-    products: Item[];
+    products: OrderItem[];
 };
 
 export const createOrderController = async (req: Request, res: Response) => {

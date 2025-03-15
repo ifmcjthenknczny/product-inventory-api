@@ -1,5 +1,7 @@
+import { Location } from "./../types/customer.type";
 import { Season } from "./holiday";
-import { Location } from "../types/customer.type";
+import { PriceModifier } from "../types/order.type";
+import { geometricSumFromPercentCoefficients } from "./common";
 
 export type Cents = number;
 
@@ -27,10 +29,16 @@ const calculateSeasonalDiscountPercent = (season: Season | null) => {
     return 0;
 };
 
-const calculateProductDiscountPercent = (productQuantity: number, season: Season | null) => {
+const determineProductDiscountPercent = (productQuantity: number, season: Season | null): PriceModifier => {
     const volumeDiscountPercent = calculateVolumeDiscountPercent(productQuantity);
     const seasonalDiscountPercent = calculateSeasonalDiscountPercent(season);
-    return Math.max(volumeDiscountPercent, seasonalDiscountPercent);
+
+    const isVolumeDiscountHigher = volumeDiscountPercent <= seasonalDiscountPercent;
+
+    return {
+        modifierPercent: Math.min(volumeDiscountPercent, seasonalDiscountPercent),
+        name: isVolumeDiscountHigher ? "VolumeDiscount" : "SeasonalDiscount",
+    };
 };
 
 const calculateLocationPriceAdjustment = (location: Location) => {
@@ -42,7 +50,7 @@ const calculateLocationPriceAdjustment = (location: Location) => {
     return 0;
 };
 
-export const calculateProductPriceCoefficient = ({
+export const determinePriceModifiers = ({
     location,
     productQuantity,
     season,
@@ -50,9 +58,13 @@ export const calculateProductPriceCoefficient = ({
     location: Location;
     productQuantity: number;
     season: Season | null;
-}) => {
-    const discount = calculateProductDiscountPercent(productQuantity, season);
-    const priceLocationAdjustment = calculateLocationPriceAdjustment(location);
+}): PriceModifier[] => {
+    const discount = determineProductDiscountPercent(productQuantity, season);
+    const priceLocationModifier: PriceModifier = { name: "LocationBased", modifierPercent: calculateLocationPriceAdjustment(location) };
 
-    return (1 + fromCents(discount)) * (1 + fromCents(priceLocationAdjustment));
+    return [discount, priceLocationModifier].filter((modifier) => !!modifier.modifierPercent);
+};
+
+export const calculateProductPriceCoefficient = (priceModifiers: PriceModifier[]): number => {
+    return geometricSumFromPercentCoefficients(priceModifiers.map((modifier) => modifier.modifierPercent));
 };

@@ -1,13 +1,29 @@
 import { Cents } from "../utils/price";
 
-export type Item = {
+type Percent = number;
+
+export type OrderItem = {
     productId: number;
     quantity: number;
 };
 
-type OrderProduct = Item & {
+export enum PRICE_MODIFIER_TYPES {
+    "SeasonalDiscount" = "SeasonalDiscount",
+    "VolumeDiscount" = "VolumeDiscount",
+    "LocationBased" = "LocationBased",
+}
+
+type PriceModifierType = keyof typeof PRICE_MODIFIER_TYPES;
+
+export type PriceModifier = {
+    name: PriceModifierType;
+    modifierPercent: Percent;
+};
+
+type OrderProduct = OrderItem & {
     unitPrice: Cents;
-    unitPriceBeforeDiscount?: Cents;
+    unitPriceBeforeModifiers?: Cents;
+    priceModifiers?: PriceModifier[];
 };
 
 export type Order = {

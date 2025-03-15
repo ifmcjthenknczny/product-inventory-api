@@ -1,5 +1,5 @@
 import { Schema, model, models } from "mongoose";
-import { Order } from "../types/order.type";
+import { Order, PRICE_MODIFIER_TYPES } from "../types/order.type";
 
 const orderModel = new Schema<Order>(
     {
@@ -9,7 +9,13 @@ const orderModel = new Schema<Order>(
                 productId: { type: Number, required: true },
                 quantity: { type: Number, required: true, min: 1 },
                 unitPrice: { type: Number, required: true, min: 0 },
-                unitPriceBeforeDiscount: { type: Number, min: 0 },
+                unitPriceBeforeModifiers: { type: Number, min: 0 },
+                priceModifiers: [
+                    {
+                        name: { type: String, enum: PRICE_MODIFIER_TYPES, required: true },
+                        modifierPercent: { type: Number, required: true }, // Percentage change, eg. -30
+                    },
+                ],
             },
         ],
         totalAmount: { type: Number, required: true, min: 0 },

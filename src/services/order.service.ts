@@ -1,23 +1,22 @@
 import OrderModel from "../models/order.model";
 import ProductModel from "../models/product.model";
-import { Item, Order } from "../types/order.type";
+import { OrderItem, Order } from "../types/order.type";
 import { Product } from "../types/product.type";
 import { determineSeason } from "../utils/holiday";
-import { calculateProductPriceCoefficient } from "../utils/price";
+import { calculateProductPriceCoefficient, determinePriceModifiers } from "../utils/price";
 import { sellProduct } from "./product.service";
 import { toDay } from "../utils/date";
 import { chunkify } from "../utils/array";
-import CustomerModel from "../models/customer.model";
+import { getCustomer } from "./customer.service";
 
 const JOB_CHUNK_MAX_SIZE = 10;
 
-export const createOrder = async (customerId: number, products: Item[]): Promise<Order> => {
+export const createOrder = async (customerId: number, products: OrderItem[]): Promise<void> => {
     const date = new Date();
     let totalAmount = 0;
-    const customer = await CustomerModel.findById(customerId);
-    if (!customer) {
-        throw new Error(`Customer with ID ${customerId} not found`);
-    }
+
+    const customer = await getCustomer(customerId);
+
     const dbOrderProducts: Order["products"] = [];
     const season = determineSeason(toDay(date));
 
@@ -30,12 +29,12 @@ export const createOrder = async (customerId: number, products: Item[]): Promise
         if (product.stock < orderProduct.quantity) {
             throw new Error(`Insufficient stock of product id ${orderProduct.productId}`);
         }
-        const priceCoefficient = calculateProductPriceCoefficient({ location: customer.location, productQuantity: orderProduct.quantity, season });
+
+        const priceModifiers = determinePriceModifiers({ location: customer.location, productQuantity: orderProduct.quantity, season });
+        const priceCoefficient = calculateProductPriceCoefficient(priceModifiers);
         const unitPrice = Math.ceil(priceCoefficient * product.price);
 
-        // TODO: dodać pole - zastosowane modyfikatory cen?
-
-        dbOrderProducts.push({ ...orderProduct, unitPrice, unitPriceBeforeDiscount: product.price });
+        dbOrderProducts.push({ ...orderProduct, unitPrice, unitPriceBeforeModifiers: product.price, priceModifiers });
         totalAmount += orderProduct.quantity * unitPrice;
     }
 
@@ -45,10 +44,9 @@ export const createOrder = async (customerId: number, products: Item[]): Promise
     );
 
     for (const chunk of sellProductChunks) {
-        // TODO: blocked quantity i odjąć je na końcu albo uwolnić, albo założyć jakąś blokadę na bazę danych?
+        // TODO: dodać pole reserved
         await Promise.all(chunk);
     }
 
-    const order = await OrderModel.create({ customerId, products: dbOrderProducts, totalAmount, createdAt: date });
-    return order.toObject() as Order;
+    await OrderModel.create({ customerId, products: dbOrderProducts, totalAmount, createdAt: date });
 };
