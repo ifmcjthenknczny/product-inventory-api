@@ -10,15 +10,15 @@ import {
     sellProduct,
     rollbackSellProducts,
 } from "./product.service";
-import { toDay } from "../utils/date";
 import { getCustomer } from "./customer.service";
 import { Location } from "../types/customer.type";
 import { v4 as uuid } from "uuid";
+import { DateTime } from "luxon";
 
-const calculateTotalAmount = (products: OrderItem[], productLookup: ProductLookupObject, customerLocation: Location, orderDate: Date) => {
+const calculateTotalAmount = (products: OrderItem[], productLookup: ProductLookupObject, customerLocation: Location, orderDate: DateTime) => {
     let totalAmount: Cents = 0;
     const dbOrderProducts: Order["products"] = [];
-    const season = determineSeason(toDay(orderDate));
+    const season = determineSeason(orderDate);
 
     for (const orderProduct of products) {
         const product = productLookup[orderProduct.productId];
@@ -29,6 +29,7 @@ const calculateTotalAmount = (products: OrderItem[], productLookup: ProductLooku
         const priceModifiers = determinePriceModifiers({ location: customerLocation, productQuantity: orderProduct.quantity, season });
         const priceCoefficient = calculateProductPriceCoefficient(priceModifiers);
 
+        // Rounding for the benefit of the seller
         const unitPrice = Math.ceil(priceCoefficient * product.unitPrice);
         dbOrderProducts.push({
             ...orderProduct,
@@ -54,7 +55,7 @@ const processProducts = async (orderProducts: OrderItem[], orderId: string) => {
     }
 };
 
-type OrderInfo = Pick<Order, "_id" | "createdAt" | "customerId">;
+type OrderInfo = Pick<Order, "_id" | "customerId"> & { createdAt: DateTime };
 
 const finalizeOrder = async ({ _id, createdAt, customerId }: OrderInfo, orderProducts: OrderItem[], productLookup: ProductLookupObject) => {
     try {
@@ -70,7 +71,7 @@ const finalizeOrder = async ({ _id, createdAt, customerId }: OrderInfo, orderPro
 
 export const processAndCreateOrder = async (customerId: number, orderProducts: OrderItem[]): Promise<void> => {
     const orderId = uuid();
-    const orderDate = new Date();
+    const orderDate = DateTime.now().setZone("Europe/Warsaw");
 
     const productLookupObject = await getProductsByIdAsLookupObject(orderProducts.map((product) => product.productId));
     await reserveStock(orderId, orderProducts);

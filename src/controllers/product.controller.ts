@@ -34,7 +34,7 @@ export const restockProductController = async (req: Request, res: Response) => {
 };
 
 export const sellProductController = async (req: Request, res: Response) => {
-    // In current implementation (with reservedStock) it is reccomended to drop this endpoint
+    // In current implementation (with reservedStock) it is reccomended to drop this endpoint - without orderId as a parameter it may lead to inconsistencies.
     const { id } = validateSchema<UpdateStockQuery>(req.params, updateProductStockQuerySchema);
     const { quantity } = validateSchema<UpdateStockBody>(req.body, updateProductStockBodySchema);
 
