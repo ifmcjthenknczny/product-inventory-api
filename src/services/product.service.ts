@@ -3,11 +3,14 @@ import { Product } from "../types/product.type";
 import ProductModel from "../models/product.model";
 import { UpdateStockBody, UpdateStockQuery } from "../controllers/product.controller";
 import { toCents } from "../utils/price";
+import { omit } from "../utils/common";
 
-const toDbProduct = (product: Product): Product => {
+export type ProductLookupMap = Record<string, Omit<Product, "_id">>;
+
+const toDbProductInsert = (product: Omit<Product, "_id">): Omit<Product, "_id"> => {
     return {
         ...product,
-        price: toCents(product.price),
+        unitPrice: toCents(product.unitPrice),
     };
 };
 
@@ -16,7 +19,7 @@ export const getAllProducts = async () => {
 };
 
 export const createProduct = async (product: Omit<Product, "_id">): Promise<void> => {
-    await ProductModel.create<Product>(toDbProduct(product));
+    await ProductModel.create<Product>(toDbProductInsert(product));
 };
 
 export const restockProduct = async (productId: UpdateStockQuery["id"], quantity: UpdateStockBody["quantity"]): Promise<void> => {
@@ -29,4 +32,13 @@ export const sellProduct = async (productId: UpdateStockQuery["id"], quantity: U
         throw new Error("Insufficient stock");
     }
     await ProductModel.findByIdAndUpdate<Product>(productId, { $inc: { stock: -quantity } }, { new: true });
+};
+
+export const getProductsByIdAsLookupObject = async (productIds: Product["_id"][]): Promise<ProductLookupMap> => {
+    // Retrieves multiple products from the database and optimizes lookup efficiency
+    const dbProducts = await ProductModel.find<Product>({ _id: { $in: productIds } }, { unitPrice: 1, stock: 1 });
+
+    const productObject = Object.fromEntries(dbProducts.map((p) => [p._id.toString(), omit(p, ["_id"])]));
+
+    return productObject;
 };

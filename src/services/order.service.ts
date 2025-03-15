@@ -1,45 +1,55 @@
 import OrderModel from "../models/order.model";
-import ProductModel from "../models/product.model";
 import { OrderItem, Order } from "../types/order.type";
-import { Product } from "../types/product.type";
 import { determineSeason } from "../utils/holiday";
-import { calculateProductPriceCoefficient, determinePriceModifiers } from "../utils/price";
-import { sellProduct } from "./product.service";
+import { calculateProductPriceCoefficient, Cents, determinePriceModifiers } from "../utils/price";
+import { getProductsByIdAsLookupObject, ProductLookupMap, sellProduct } from "./product.service";
 import { toDay } from "../utils/date";
 import { chunkify } from "../utils/array";
 import { getCustomer } from "./customer.service";
+import { Location } from "../types/customer.type";
 
 const JOB_CHUNK_MAX_SIZE = 10;
 
-export const createOrder = async (customerId: number, products: OrderItem[]): Promise<void> => {
-    const date = new Date();
-    let totalAmount = 0;
-
-    const customer = await getCustomer(customerId);
-
+const validateAndCalculateProducts = (products: OrderItem[], productMap: ProductLookupMap, customerLocation: Location, orderDate: Date) => {
+    let totalAmount: Cents = 0;
     const dbOrderProducts: Order["products"] = [];
-    const season = determineSeason(toDay(date));
+    const season = determineSeason(toDay(orderDate));
 
     for (const orderProduct of products) {
-        // TODO: find many products
-        const product = await ProductModel.findById<Product>(orderProduct.productId);
+        const product = productMap[orderProduct.productId];
         if (!product) {
-            throw new Error(`Product of id ${orderProduct.productId} is unavailable`);
+            throw new Error(`Product with ID ${orderProduct.productId} is unavailable`);
         }
         if (product.stock < orderProduct.quantity) {
-            throw new Error(`Insufficient stock of product id ${orderProduct.productId}`);
+            throw new Error(`Insufficient stock for product ID ${orderProduct.productId}`);
         }
 
-        const priceModifiers = determinePriceModifiers({ location: customer.location, productQuantity: orderProduct.quantity, season });
+        const priceModifiers = determinePriceModifiers({ location: customerLocation, productQuantity: orderProduct.quantity, season });
         const priceCoefficient = calculateProductPriceCoefficient(priceModifiers);
-        const unitPrice = Math.ceil(priceCoefficient * product.price);
 
-        dbOrderProducts.push({ ...orderProduct, unitPrice, unitPriceBeforeModifiers: product.price, priceModifiers });
+        const unitPrice = Math.ceil(priceCoefficient * product.unitPrice);
+        dbOrderProducts.push({
+            ...orderProduct,
+            unitPrice,
+            unitPriceBeforeModifiers: product.unitPrice,
+            priceModifiers,
+        });
+
         totalAmount += orderProduct.quantity * unitPrice;
     }
 
+    return { dbOrderProducts, totalAmount };
+};
+
+export const createOrder = async (customerId: number, orderProducts: OrderItem[]): Promise<void> => {
+    const orderDate = new Date();
+    const customer = await getCustomer(customerId);
+    const productLookupObject = await getProductsByIdAsLookupObject(orderProducts.map((product) => product.productId));
+
+    const { dbOrderProducts, totalAmount } = validateAndCalculateProducts(orderProducts, productLookupObject, customer.location, orderDate);
+
     const sellProductChunks = chunkify(
-        products.map((product) => sellProduct(product.productId, product.quantity)),
+        orderProducts.map((product) => sellProduct(product.productId, product.quantity)),
         JOB_CHUNK_MAX_SIZE,
     );
 
@@ -48,5 +58,5 @@ export const createOrder = async (customerId: number, products: OrderItem[]): Pr
         await Promise.all(chunk);
     }
 
-    await OrderModel.create({ customerId, products: dbOrderProducts, totalAmount, createdAt: date });
+    await OrderModel.create({ customerId, products: dbOrderProducts, totalAmount, createdAt: orderDate });
 };

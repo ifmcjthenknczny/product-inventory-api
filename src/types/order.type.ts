@@ -27,7 +27,7 @@ type OrderProduct = OrderItem & {
 };
 
 export type Order = {
-    _id?: string;
+    _id: string;
     customerId: number;
     products: OrderProduct[];
     totalAmount: Cents;
