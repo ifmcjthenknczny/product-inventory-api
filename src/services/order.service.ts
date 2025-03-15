@@ -45,11 +45,13 @@ const calculateTotalAmount = (products: OrderItem[], productLookup: ProductLooku
 
 export const processAndCreateOrder = async (customerId: number, orderProducts: OrderItem[]): Promise<void> => {
     const orderId = uuid();
+    const orderDate = new Date();
+
     try {
-        const orderDate = new Date();
-        const customer = await getCustomer(customerId);
+        const { location } = await getCustomer(customerId);
         const productLookupObject = await getProductsByIdAsLookupObject(orderProducts.map((product) => product.productId));
         await reserveStock(orderId, orderProducts);
+
         for (const [index, orderProduct] of orderProducts.entries()) {
             try {
                 await sellProduct(orderProduct.productId, orderProduct.quantity);
@@ -61,7 +63,7 @@ export const processAndCreateOrder = async (customerId: number, orderProducts: O
         }
         try {
             await dropProductsReservationsForOrderId(orderId);
-            const { dbOrderProducts, totalAmount } = calculateTotalAmount(orderProducts, productLookupObject, customer.location, orderDate);
+            const { dbOrderProducts, totalAmount } = calculateTotalAmount(orderProducts, productLookupObject, location, orderDate);
             await OrderModel.create({ _id: orderId, customerId, products: dbOrderProducts, totalAmount, createdAt: orderDate });
         } catch (error) {
             await rollbackSellProducts(orderProducts);

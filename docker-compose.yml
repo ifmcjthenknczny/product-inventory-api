@@ -22,7 +22,7 @@ services:
       - mongodb
     environment:
       MONGO_URI: mongodb://admin:secret@mongodb:27017/coffeemug?authSource=admin
-    command: npm run start:prod
+    command: npm run start
 
 volumes:
   mongodb_data:

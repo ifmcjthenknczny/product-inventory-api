@@ -26,7 +26,8 @@ const toPublicProduct = (product: Product): PublicProduct => {
 };
 
 export const getAllProducts = async () => {
-    const products = await ProductModel.find<Product>();
+    // TODO: implementing pagination should be a good idea here
+    const products = await ProductModel.find<Product>().lean<Product[]>();
     return products.map(toPublicProduct);
 };
 
@@ -60,9 +61,6 @@ export const sellProduct = async (productId: UpdateStockQuery["id"], quantity: U
         throw new Error(`Product of id ${productId} is not available.`);
     }
     if (!hasEnoughStock({ productId, quantity }, product, orderId)) {
-        if (orderId) {
-            await dropProductsReservationsForOrderId(orderId);
-        }
         throw new Error(`Insufficient stock for ${productId}`);
     }
 

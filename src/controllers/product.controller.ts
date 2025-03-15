@@ -15,7 +15,8 @@ export type UpdateStockBody = {
 export type CreateProduct = Omit<Product, "_id" | "reservedStock">;
 
 export const getAllProductsController = async (req: Request, res: Response) => {
-    res.json(await getAllProducts());
+    const products = await getAllProducts();
+    res.json(products);
 };
 
 export const createProductController = async (req: Request, res: Response) => {
@@ -33,6 +34,7 @@ export const restockProductController = async (req: Request, res: Response) => {
 };
 
 export const sellProductController = async (req: Request, res: Response) => {
+    // In current implementation (with reservedStock) it is reccomended to drop this endpoint
     const { id } = validateSchema<UpdateStockQuery>(req.params, updateProductStockQuerySchema);
     const { quantity } = validateSchema<UpdateStockBody>(req.body, updateProductStockBodySchema);
 
