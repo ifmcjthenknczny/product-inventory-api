@@ -3,6 +3,7 @@ import { Order, PRICE_MODIFIER_TYPES } from "../types/order.type";
 
 const orderModel = new Schema<Order>(
     {
+        _id: { type: String, required: true },
         customerId: { type: Number, required: true },
         products: [
             {

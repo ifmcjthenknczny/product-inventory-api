@@ -2,7 +2,7 @@ import { Request, Response } from "express";
 import validateSchema from "../utils/validate";
 import { OrderItem } from "../types/order.type";
 import { createOrderSchema } from "../schema/order.schema";
-import { createOrder } from "../services/order.service";
+import { processAndCreateOrder } from "../services/order.service";
 
 export type CreateOrderBody = {
     customerId: number;
@@ -11,6 +11,6 @@ export type CreateOrderBody = {
 
 export const createOrderController = async (req: Request, res: Response) => {
     const { customerId, products } = validateSchema<CreateOrderBody>(req.body, createOrderSchema);
-    const order = await createOrder(customerId, products);
+    const order = await processAndCreateOrder(customerId, products);
     res.status(201).json(order);
 };

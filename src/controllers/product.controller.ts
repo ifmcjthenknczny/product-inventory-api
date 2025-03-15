@@ -12,12 +12,14 @@ export type UpdateStockBody = {
     quantity: number;
 };
 
+export type CreateProduct = Omit<Product, "_id" | "reservedStock">;
+
 export const getAllProductsController = async (req: Request, res: Response) => {
     res.json(await getAllProducts());
 };
 
 export const createProductController = async (req: Request, res: Response) => {
-    const product = validateSchema<Omit<Product, "_id">>(req.body, createProductSchema);
+    const product = validateSchema<CreateProduct>(req.body, createProductSchema);
     await createProduct(product);
     res.status(201);
 };
