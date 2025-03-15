@@ -43,34 +43,37 @@ const calculateTotalAmount = (products: OrderItem[], productLookup: ProductLooku
     return { dbOrderProducts, totalAmount };
 };
 
+const processProducts = async (orderProducts: OrderItem[], orderId: string) => {
+    for (const [index, orderProduct] of orderProducts.entries()) {
+        try {
+            await sellProduct(orderProduct.productId, orderProduct.quantity, orderId);
+        } catch (error) {
+            await rollbackSellProducts(orderProducts.slice(0, index));
+            throw error;
+        }
+    }
+};
+
+type OrderInfo = Pick<Order, "_id" | "createdAt" | "customerId">;
+
+const finalizeOrder = async ({ _id, createdAt, customerId }: OrderInfo, orderProducts: OrderItem[], productLookup: ProductLookupObject) => {
+    try {
+        const { location } = await getCustomer(customerId);
+        await dropProductsReservationsForOrderId(_id);
+        const { dbOrderProducts, totalAmount } = calculateTotalAmount(orderProducts, productLookup, location, createdAt);
+        await OrderModel.create({ _id, customerId, products: dbOrderProducts, totalAmount, createdAt });
+    } catch (error) {
+        await rollbackSellProducts(orderProducts);
+        throw error;
+    }
+};
+
 export const processAndCreateOrder = async (customerId: number, orderProducts: OrderItem[]): Promise<void> => {
     const orderId = uuid();
     const orderDate = new Date();
 
-    try {
-        const { location } = await getCustomer(customerId);
-        const productLookupObject = await getProductsByIdAsLookupObject(orderProducts.map((product) => product.productId));
-        await reserveStock(orderId, orderProducts);
-
-        for (const [index, orderProduct] of orderProducts.entries()) {
-            try {
-                await sellProduct(orderProduct.productId, orderProduct.quantity);
-            } catch (error) {
-                const productsToRollback = orderProducts.slice(0, index);
-                await rollbackSellProducts(productsToRollback);
-                throw error;
-            }
-        }
-        try {
-            await dropProductsReservationsForOrderId(orderId);
-            const { dbOrderProducts, totalAmount } = calculateTotalAmount(orderProducts, productLookupObject, location, orderDate);
-            await OrderModel.create({ _id: orderId, customerId, products: dbOrderProducts, totalAmount, createdAt: orderDate });
-        } catch (error) {
-            await rollbackSellProducts(orderProducts);
-            throw error;
-        }
-    } catch (error) {
-        await dropProductsReservationsForOrderId(orderId);
-        throw error;
-    }
+    const productLookupObject = await getProductsByIdAsLookupObject(orderProducts.map((product) => product.productId));
+    await reserveStock(orderId, orderProducts);
+    await processProducts(orderProducts, orderId);
+    await finalizeOrder({ _id: orderId, customerId, createdAt: orderDate }, orderProducts, productLookupObject);
 };
