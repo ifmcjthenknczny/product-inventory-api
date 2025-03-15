@@ -16,13 +16,13 @@ export type CreateProduct = Omit<Product, "_id" | "reservedStock">;
 
 export const getAllProductsController = async (req: Request, res: Response) => {
     const products = await getAllProducts();
-    res.json(products);
+    res.status(200).json(products);
 };
 
 export const createProductController = async (req: Request, res: Response) => {
     const product = validateSchema<CreateProduct>(req.body, createProductSchema);
     await createProduct(product);
-    res.status(201);
+    res.status(201).json({ message: "Product created successfully" });
 };
 
 export const restockProductController = async (req: Request, res: Response) => {
@@ -30,7 +30,7 @@ export const restockProductController = async (req: Request, res: Response) => {
     const { quantity } = validateSchema<UpdateStockBody>(req.body, updateProductStockBodySchema);
 
     await restockProduct(id, quantity);
-    res.status(200);
+    res.status(200).json({ message: "Product restocked successfully" });
 };
 
 export const sellProductController = async (req: Request, res: Response) => {
@@ -39,5 +39,5 @@ export const sellProductController = async (req: Request, res: Response) => {
     const { quantity } = validateSchema<UpdateStockBody>(req.body, updateProductStockBodySchema);
 
     await sellProduct(id, quantity);
-    res.status(200);
+    res.status(200).json({ message: "Product sold successfully" });
 };

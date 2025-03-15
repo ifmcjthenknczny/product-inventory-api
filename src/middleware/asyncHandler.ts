@@ -11,5 +11,6 @@ export const asyncHandler = (handler: RequestHandler): RequestHandler => {
             };
             res.status(statusCode).json({ error: message });
         }
+        return;
     };
 };

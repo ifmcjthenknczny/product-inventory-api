@@ -1,11 +1,11 @@
 import { Product, PublicProduct, ReservedStock } from "../types/product.type";
 
-import ProductModel from "../models/product.model";
 import { CreateProduct, UpdateStockBody, UpdateStockQuery } from "../controllers/product.controller";
 import { fromCents, toCents } from "../utils/price";
 import { omit } from "../utils/common";
 import { OrderItem } from "../types/order.type";
 import { chunkify } from "../utils/array";
+import ProductModel from "../models/product.model";
 
 const MAX_ASYNC_CHUNK_SIZE = 20;
 
@@ -32,7 +32,7 @@ export const getAllProducts = async () => {
 };
 
 export const createProduct = async (product: CreateProduct): Promise<void> => {
-    await ProductModel.create<Product>(toDbCreateProduct(product));
+    await ProductModel.create<CreateProduct>(toDbCreateProduct(product));
 };
 
 export const restockProduct = async (productId: UpdateStockQuery["id"], quantity: UpdateStockBody["quantity"]): Promise<void> => {
@@ -40,12 +40,13 @@ export const restockProduct = async (productId: UpdateStockQuery["id"], quantity
 };
 
 const hasEnoughStock = (orderProduct: OrderItem, product: Omit<Product, "_id">, orderId?: string) => {
-    const reservedQuantity = product.reservedStock.reduce((sum: number, r: ReservedStock) => sum + r.quantity, 0);
+    const reservedStock = product.reservedStock || [];
+    const reservedQuantity = reservedStock.reduce((sum: number, r: ReservedStock) => sum + r.quantity, 0);
     if (reservedQuantity > product.stock) {
         throw new Error("Concurrency error");
     }
 
-    const reservedStockForOrderId = orderId ? product.reservedStock.find((r) => r.orderId === orderId)?.quantity || 0 : 0;
+    const reservedStockForOrderId = orderId ? reservedStock.find((r) => r.orderId === orderId)?.quantity || 0 : 0;
 
     if (reservedStockForOrderId >= orderProduct.quantity) {
         return true;
@@ -56,12 +57,12 @@ const hasEnoughStock = (orderProduct: OrderItem, product: Omit<Product, "_id">, 
 };
 
 export const sellProduct = async (productId: UpdateStockQuery["id"], quantity: UpdateStockBody["quantity"], orderId?: string) => {
-    const product = await ProductModel.findById<Product>(productId);
+    const product = await ProductModel.findById<Product>(productId).lean<Product>();
     if (!product) {
-        throw new Error(`Product of id ${productId} is not available.`);
+        throw new Error(`Product with ID ${productId} is unavailable`);
     }
     if (!hasEnoughStock({ productId, quantity }, product, orderId)) {
-        throw new Error(`Insufficient stock for ${productId}`);
+        throw new Error(`Insufficient stock for product id ${productId}`);
     }
 
     await ProductModel.findByIdAndUpdate<Product>(productId, { $inc: { stock: -quantity } }, { new: true });
@@ -69,7 +70,7 @@ export const sellProduct = async (productId: UpdateStockQuery["id"], quantity: U
 
 export const getProductsByIdAsLookupObject = async (productIds: Product["_id"][]): Promise<ProductLookupObject> => {
     // Retrieves multiple products from the database and optimizes lookup efficiency
-    const dbProducts = await ProductModel.find<Product>({ _id: { $in: productIds } }, { unitPrice: 1, stock: 1, reservedStock: 1 });
+    const dbProducts = await ProductModel.find<Product>({ _id: { $in: productIds } }, { unitPrice: 1, stock: 1, reservedStock: 1 }).lean<Product[]>();
 
     const productObject = Object.fromEntries(dbProducts.map((p) => [p._id.toString(), omit(p, ["_id"])]));
 
@@ -86,10 +87,12 @@ export const reserveStock = async (orderId: string, orderProducts: OrderItem[]) 
     for (const orderProduct of orderProducts) {
         const product = products[orderProduct.productId];
         if (!product) {
-            throw new Error(`Product ${orderProduct.productId} not found`);
+            await dropProductsReservationsForOrderId(orderId);
+            throw new Error(`Product with ID ${orderProduct.productId} is unavailable`);
         }
         if (!hasEnoughStock(orderProduct, product, orderId)) {
-            throw new Error(`Insufficient stock for ${orderProduct.productId}`);
+            await dropProductsReservationsForOrderId(orderId);
+            throw new Error(`Insufficient stock for product id ${orderProduct.productId}`);
         }
 
         await ProductModel.updateOne({ _id: orderProduct.productId }, { $push: { reservedStock: { orderId, quantity: orderProduct.quantity } } });

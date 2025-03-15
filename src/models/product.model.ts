@@ -1,16 +1,16 @@
-import { Schema, models, model } from "mongoose";
+import { Schema, models, model, Model } from "mongoose";
 import { Product } from "../types/product.type";
 
-const productModel = new Schema<Product>(
+const productSchema = new Schema<Product>(
     {
-        _id: { type: Number, required: true, min: 1 },
+        _id: { type: Number },
         name: { type: String, required: true, maxlength: 50 },
         description: { type: String, required: true, maxlength: 50 },
         unitPrice: { type: Number, required: true, min: 1 }, // in cents
         stock: { type: Number, required: true, min: 0 },
         reservedStock: [
             {
-                orderId: { type: Number, required: true },
+                orderId: { type: String, required: true },
                 quantity: { type: Number, required: true, min: 0 },
             },
         ],
@@ -18,4 +18,6 @@ const productModel = new Schema<Product>(
     { timestamps: true, strict: true },
 );
 
-export default models.product<Product> || model<Product>("product", productModel);
+const ProductModel: Model<Product> = models.product || model<Product>("product", productSchema);
+
+export default ProductModel;

@@ -1,4 +1,4 @@
-import { Schema, model, models } from "mongoose";
+import { Schema, Model, model, models } from "mongoose";
 import { Customer } from "../types/customer.type";
 
 const customerModel = new Schema<Customer>(
@@ -10,4 +10,6 @@ const customerModel = new Schema<Customer>(
     { timestamps: true, strict: true },
 );
 
-export default models.Customer<Customer> || model<Customer>("Customer", customerModel);
+const CustomerModel: Model<Customer> = models.Customer || model<Customer>("customer", customerModel);
+
+export default CustomerModel;

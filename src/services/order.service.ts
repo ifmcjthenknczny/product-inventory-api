@@ -50,6 +50,7 @@ const processProducts = async (orderProducts: OrderItem[], orderId: string) => {
             await sellProduct(orderProduct.productId, orderProduct.quantity, orderId);
         } catch (error) {
             await rollbackSellProducts(orderProducts.slice(0, index));
+            await dropProductsReservationsForOrderId(orderId);
             throw error;
         }
     }
@@ -65,6 +66,7 @@ const finalizeOrder = async ({ _id, createdAt, customerId }: OrderInfo, orderPro
         await OrderModel.create({ _id, customerId, products: dbOrderProducts, totalAmount, createdAt });
     } catch (error) {
         await rollbackSellProducts(orderProducts);
+        await dropProductsReservationsForOrderId(_id);
         throw error;
     }
 };
