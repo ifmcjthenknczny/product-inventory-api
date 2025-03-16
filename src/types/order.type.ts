@@ -32,4 +32,5 @@ export type Order = {
     products: OrderProduct[];
     totalAmount: Cents;
     createdAt: Date;
+    updatedAt?: Date;
 };

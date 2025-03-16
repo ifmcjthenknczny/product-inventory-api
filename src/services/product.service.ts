@@ -1,6 +1,6 @@
 import { Product, PublicProduct, ReservedStock } from "../types/product.type";
 
-import { CreateProduct, UpdateStockBody, UpdateStockQuery } from "../controllers/product.controller";
+import { CreateProductBody, UpdateStockBody, UpdateStockQuery } from "../controllers/product.controller";
 import { fromCents, toCents } from "../utils/price";
 import { omit } from "../utils/common";
 import { OrderItem } from "../types/order.type";
@@ -12,7 +12,9 @@ const MAX_ASYNC_CHUNK_SIZE = 20;
 
 export type ProductLookupObject = Record<string, Omit<Product, "_id">>;
 
-const toDbCreateProduct = async (product: CreateProduct): Promise<Omit<Product, "reservedStock">> => {
+type DbCreateProduct = Omit<Product, "reservedStock" | "createdAt" | "updatedAt">;
+
+const toDbCreateProduct = async (product: CreateProductBody): Promise<DbCreateProduct> => {
     return {
         ...product,
         _id: await findNextId(ProductModel),
@@ -33,9 +35,9 @@ export const getAllProducts = async () => {
     return products.map(toPublicProduct);
 };
 
-export const createProduct = async (product: CreateProduct): Promise<void> => {
+export const createProduct = async (product: CreateProductBody): Promise<void> => {
     const dbProduct = await toDbCreateProduct(product);
-    await ProductModel.create<CreateProduct>(dbProduct);
+    await ProductModel.create<CreateProductBody>(dbProduct);
 };
 
 export const restockProduct = async (productId: UpdateStockQuery["id"], quantity: UpdateStockBody["quantity"]): Promise<void> => {

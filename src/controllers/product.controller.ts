@@ -12,7 +12,7 @@ export type UpdateStockBody = {
     quantity: number;
 };
 
-export type CreateProduct = Omit<Product, "_id" | "reservedStock">;
+export type CreateProductBody = Omit<Product, "_id" | "reservedStock" | "createdAt" | "updatedAt">;
 
 export const getAllProductsController = async (req: Request, res: Response) => {
     const products = await getAllProducts();
@@ -20,7 +20,7 @@ export const getAllProductsController = async (req: Request, res: Response) => {
 };
 
 export const createProductController = async (req: Request, res: Response) => {
-    const product = validateSchema<CreateProduct>(req.body, createProductSchema);
+    const product = validateSchema<CreateProductBody>(req.body, createProductSchema);
     await createProduct(product);
     res.status(201).json({ message: "Product created successfully" });
 };

@@ -11,7 +11,9 @@ export type Product = {
     description: string;
     unitPrice: Cents;
     stock: number;
-    reservedStock: ReservedStock[];
+    reservedStock?: ReservedStock[];
+    createdAt: Date;
+    updatedAt?: Date;
 };
 
-export type PublicProduct = Omit<Product, "reservedStock">;
+export type PublicProduct = Omit<Product, "reservedStock" | "createdAt" | "updatedAt">;

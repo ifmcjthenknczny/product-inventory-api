@@ -11,6 +11,7 @@ export type CreateOrderBody = {
 
 export const createOrderController = async (req: Request, res: Response) => {
     const { customerId, products } = validateSchema<CreateOrderBody>(req.body, createOrderSchema);
+
     await processAndCreateOrder(customerId, products);
     res.status(201).json({ message: "Order created successfully" });
 };

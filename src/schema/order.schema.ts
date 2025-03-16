@@ -6,7 +6,10 @@ const orderProductSchema = Joi.object({
     quantity: quantitySchema.required(),
 });
 
-const orderProductsSchema = Joi.array().items(orderProductSchema.required()).min(1);
+const orderProductsSchema = Joi.array()
+    .items(orderProductSchema.required())
+    .min(1)
+    .unique((a, b) => a.productId === b.productId);
 
 export const createOrderSchema = Joi.object({
     customerId: idSchema.required(),
