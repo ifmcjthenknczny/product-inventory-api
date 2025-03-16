@@ -43,7 +43,7 @@ const calculateTotalAmount = (products: OrderItem[], productLookup: ProductLooku
     return { dbOrderProducts, totalAmount };
 };
 
-const processProducts = async (orderProducts: OrderItem[], orderId: string) => {
+const processProducts = async (orderId: string, orderProducts: OrderItem[]) => {
     for (const [index, orderProduct] of orderProducts.entries()) {
         try {
             await sellProduct(orderProduct.productId, orderProduct.quantity, orderId);
@@ -55,27 +55,27 @@ const processProducts = async (orderProducts: OrderItem[], orderId: string) => {
     }
 };
 
-type OrderInfo = Pick<Order, "_id" | "customerId"> & { createdAt: DateTime };
+type OrderInfo = Pick<Order, "_id" | "customerId"> & { createdAt: DateTime; location: Location };
 
-const finalizeOrder = async ({ _id, createdAt, customerId }: OrderInfo, orderProducts: OrderItem[], productLookup: ProductLookupObject) => {
+const finalizeOrder = async ({ _id, createdAt, location, customerId }: OrderInfo, orderProducts: OrderItem[], productLookup: ProductLookupObject) => {
     try {
-        const { location } = await getCustomer(customerId);
-        await dropProductsReservationsForOrderId(_id);
         const { dbOrderProducts, totalAmount } = calculateTotalAmount(orderProducts, productLookup, location, createdAt);
         await OrderModel.create({ _id, customerId, products: dbOrderProducts, totalAmount, createdAt });
     } catch (error) {
         await rollbackSellProducts(orderProducts);
-        await dropProductsReservationsForOrderId(_id);
         throw error;
+    } finally {
+        await dropProductsReservationsForOrderId(_id);
     }
 };
 
 export const processAndCreateOrder = async (customerId: number, orderProducts: OrderItem[]): Promise<void> => {
     const orderId = uuid();
     const orderDate = DateTime.now().setZone("Europe/Warsaw");
+    const { location } = await getCustomer(customerId); // it is better to check it earlier, than to provide only customerId to finalizeOrder and get location there
 
     const productLookupObject = await getProductsByIdAsLookupObject(orderProducts.map((product) => product.productId));
     await reserveStock(orderId, orderProducts);
-    await processProducts(orderProducts, orderId);
-    await finalizeOrder({ _id: orderId, customerId, createdAt: orderDate }, orderProducts, productLookupObject);
+    await processProducts(orderId, orderProducts);
+    await finalizeOrder({ _id: orderId, customerId, location, createdAt: orderDate }, orderProducts, productLookupObject);
 };

@@ -4,11 +4,9 @@ import { CreateProductBody, UpdateStockBody, UpdateStockQuery } from "../control
 import { fromCents, toCents } from "../utils/price";
 import { omit } from "../utils/common";
 import { OrderItem } from "../types/order.type";
-import { chunkify } from "../utils/array";
+import { sum } from "../utils/array";
 import ProductModel from "../models/product.model";
 import { findNextId } from "../utils/db";
-
-const MAX_ASYNC_CHUNK_SIZE = 20;
 
 export type ProductLookupObject = Record<string, Omit<Product, "_id">>;
 
@@ -24,8 +22,9 @@ const toDbCreateProduct = async (product: CreateProductBody): Promise<DbCreatePr
 
 const toPublicProduct = (product: Product): PublicProduct => {
     return {
-        ...omit(product, ["reservedStock"]),
+        ...omit(product, ["reservedStock", "unitPrice", "stock"]),
         unitPrice: fromCents(product.unitPrice),
+        stock: product.stock - sum(...(product.reservedStock || []).map((reserved) => reserved.quantity)),
     };
 };
 
@@ -105,14 +104,7 @@ export const reserveStock = async (orderId: string, orderProducts: OrderItem[]) 
 };
 
 export const rollbackSellProducts = async (rollbackOrderProducts: OrderItem[]) => {
-    const jobChunks = chunkify(
-        rollbackOrderProducts.map((orderProduct) => {
-            ProductModel.updateOne({ _id: orderProduct.productId }, { $inc: { stock: { $inc: orderProduct.quantity } } });
-        }),
-        MAX_ASYNC_CHUNK_SIZE,
-    );
-
-    for (const chunk of jobChunks) {
-        await Promise.all(chunk);
+    for (const orderProduct of rollbackOrderProducts) {
+        await ProductModel.updateOne({ _id: orderProduct.productId }, { $inc: { stock: orderProduct.quantity } });
     }
 };
