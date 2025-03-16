@@ -25,6 +25,8 @@ db.products.insertMany([
   { _id: 20, name: "Fake Window", description: "For rooms without a view.", unitPrice: 4599, stock: 4, createdAt: now, updatedAt: now }
 ]);
 
+db.products.updateMany({}, { $set: { reservedStock: [] } });
+
 db.customers.insertMany([
   { _id: 1, name: "Buck Rogers", location: "US", createdAt: now, updatedAt: now },
   { _id: 2, name: "Euro Vision", location: "Europe", createdAt: now, updatedAt: now },

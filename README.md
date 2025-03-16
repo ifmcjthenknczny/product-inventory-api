@@ -22,6 +22,7 @@ This project is a RESTful API designed to manage an inventory of products, handl
 - **CI/CD:** Github Actions
 
 ### Npm packages
+- **ORM:** Mongoose
 - **Validation:** Joi
 - **Date handling:** Luxon
 - **Holiday calculations:** date-holidays

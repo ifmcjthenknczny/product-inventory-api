@@ -11,12 +11,17 @@ const orderModel = new Schema<Order>(
                 quantity: { type: Number, required: true, min: 1 },
                 unitPrice: { type: Number, required: true, min: 0 },
                 unitPriceBeforeModifiers: { type: Number, min: 0 },
-                priceModifiers: [
-                    {
-                        name: { type: String, enum: PRICE_MODIFIER_TYPES, required: true },
-                        modifierPercent: { type: Number, required: true }, // Percentage change, eg. -30
-                    },
-                ],
+                priceModifiers: {
+                    type: [
+                        {
+                            name: { type: String, enum: PRICE_MODIFIER_TYPES, required: true },
+                            modifierPercent: { type: Number, required: true }, // Percentage change, eg. -30
+                            _id: false,
+                        },
+                    ],
+                    default: undefined,
+                },
+                _id: false,
             },
         ],
         totalAmount: { type: Number, required: true, min: 0 },

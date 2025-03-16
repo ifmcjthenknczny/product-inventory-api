@@ -34,8 +34,7 @@ const calculateTotalAmount = (products: OrderItem[], productLookup: ProductLooku
         dbOrderProducts.push({
             ...orderProduct,
             unitPrice,
-            unitPriceBeforeModifiers: product.unitPrice,
-            priceModifiers,
+            ...(!!priceModifiers.length && { unitPriceBeforeModifiers: product.unitPrice, priceModifiers }),
         });
 
         totalAmount += orderProduct.quantity * unitPrice;
