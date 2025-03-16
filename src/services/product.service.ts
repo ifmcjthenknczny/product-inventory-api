@@ -88,18 +88,22 @@ export const dropProductsReservationsForOrderId = async (orderId: string) => {
 export const reserveStock = async (orderId: string, orderProducts: OrderItem[]) => {
     const products = await getProductsByIdAsLookupObject(orderProducts.map((product) => product.productId));
 
-    for (const orderProduct of orderProducts) {
-        const product = products[orderProduct.productId];
-        if (!product) {
-            await dropProductsReservationsForOrderId(orderId);
-            throw new Error(`Product with ID ${orderProduct.productId} is unavailable`);
-        }
-        if (!hasEnoughStock(orderProduct, product, orderId)) {
-            await dropProductsReservationsForOrderId(orderId);
-            throw new Error(`Insufficient stock for product id ${orderProduct.productId}`);
-        }
+    try {
+        for (const orderProduct of orderProducts) {
+            const product = products[orderProduct.productId];
+            if (!product) {
+                await dropProductsReservationsForOrderId(orderId);
+                throw new Error(`Product with ID ${orderProduct.productId} is unavailable`);
+            }
+            if (!hasEnoughStock(orderProduct, product, orderId)) {
+                throw new Error(`Insufficient stock for product id ${orderProduct.productId}`);
+            }
 
-        await ProductModel.updateOne({ _id: orderProduct.productId }, { $push: { reservedStock: { orderId, quantity: orderProduct.quantity } } });
+            await ProductModel.updateOne({ _id: orderProduct.productId }, { $push: { reservedStock: { orderId, quantity: orderProduct.quantity } } });
+        }
+    } catch (error) {
+        await dropProductsReservationsForOrderId(orderId);
+        throw error;
     }
 };
 

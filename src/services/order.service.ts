@@ -15,12 +15,12 @@ import { Location } from "../types/customer.type";
 import { v4 as uuid } from "uuid";
 import { DateTime } from "luxon";
 
-const calculateTotalAmount = (products: OrderItem[], productLookup: ProductLookupObject, customerLocation: Location, orderDate: DateTime) => {
+const calculateTotalAmount = (orderProducts: OrderItem[], productLookup: ProductLookupObject, customerLocation: Location, orderDate: DateTime) => {
     let totalAmount: Cents = 0;
     const dbOrderProducts: Order["products"] = [];
     const season = determineSeason(orderDate);
 
-    for (const orderProduct of products) {
+    for (const orderProduct of orderProducts) {
         const product = productLookup[orderProduct.productId];
         if (!product) {
             throw new Error(`Product with ID ${orderProduct.productId} is unavailable`);
