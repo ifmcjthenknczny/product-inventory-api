@@ -82,57 +82,60 @@ Running the app this way will automatically start the local MongoDB container wi
 ## API Endpoints
 
 ### Product Management
-- **GET /products** – Retrieve a list of all products.
-<details>
-<summary>Click for example curl</summary>
-```bash
-curl -X GET http://localhost:3000/products -H "Content-Type: application/json"
-```
-</details>
-- **POST /products** – Create a new product (fields: `name`, `description`, `price` (float with at most 2 decimal places), `stock`).
-<details>
-<summary>Click for example curl</summary>
-```bash
-curl -X POST http://localhost:3000/products \
-     -H "Content-Type: application/json" \
-     -d '{
-       "name": "I'm egg",
-       "description": "Easter egg",
-       "unitPrice": 0.30,
-       "stock": 50
-     }'
-```
-</details>
-- **POST /products/:id/restock** – Increase the stock level of a product.
-<details>
-<summary>Click for example curl</summary>
-curl -X POST http://localhost:3000/products/1/restock \
-     -H "Content-Type: application/json" \
-     -d '{
-       "quantity": 10
-     }'
-</details>
-- **POST /products/:id/sell** – Decrease the stock level of a product (ensures stock cannot go below zero).
-<details>
-<summary>Click for example curl</summary>
-curl -X POST http://localhost:3000/products/1/sell \
-     -H "Content-Type: application/json" \
-     -d '{
-       "quantity": 5
-     }'
-</details>
+- **GET /products** 
+  Retrieves a list of all products (without pagination).
+  <details>
+  <summary>Click for example curl</summary>
+  ```bash
+  curl -X GET http://localhost:3000/products -H "Content-Type: application/json"
+  ```
+  </details>
+
+- POST /products
+  Creates a new product (fields: `name`, `description`, `price` (float with at most 2 decimal places), `stock`).
+  <details>
+  <summary>Click for example curl</summary>
+  ```bash
+  curl -X POST http://localhost:3000/products \
+      -H "Content-Type: application/json" \
+      -d '{
+        "name": "I'm egg",
+        "description": "Easter egg",
+        "unitPrice": 0.30,
+        "stock": 50
+      }'
+  ```
+  </details>
+- POST /products/:id/restock
+  Increases the stock level of a product.
+  <details>
+  <summary>Click for example curl</summary>
+  curl -X POST http://localhost:3000/products/1/restock \
+      -H "Content-Type: application/json" \
+      -d '{
+        "quantity": 10
+      }'
+  </details>
+- POST /products/:id/sell
+  Decreases the stock level of a product (to zero or above).
+  <details>
+  <summary>Click for example curl</summary>
+  curl -X POST http://localhost:3000/products/1/sell \
+      -H "Content-Type: application/json" \
+      -d '{
+        "quantity": 5
+      }'
+  </details>
 
 ### Order Management
-- **POST /orders** – Create a new order (fields: `customerId`, `products`).
-  - **Stock reservation** implemented to prevent race conditions.
-  - **Orders are rolled back if stock deduction fails.**
-
-<details>
-<summary>Click for example curl</summary>
-```bash
-curl -X POST http://localhost:3000/orders -H "Content-Type: application/json" -d '{ "customerId": "1", "products": [{ "productId": "1", "quantity": 2 }] }'
-```
-</details>
+- POST /orders 
+  Creates a new order (fields: `customerId`, `products`). Stock reservation implemented to prevent race conditions. Orders are rolled back if stock deduction fails.
+  <details>
+  <summary>Click for example curl</summary>
+  ```bash
+  curl -X POST http://localhost:3000/orders -H "Content-Type: application/json" -d '{ "customerId": "1", "products": [{ "productId": "1", "quantity": 2 }] }'
+  ```
+  </details>
 
 - **Discount Logic:**
   - **Volume-based discounts:**
