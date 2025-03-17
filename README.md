@@ -91,7 +91,7 @@ Running the app this way will automatically start the local MongoDB container wi
   ```
   </details>
 
-- POST /products
+- **POST /products**
   Creates a new product (fields: `name`, `description`, `price` (float with at most 2 decimal places), `stock`).
   <details>
   <summary>Click for example curl</summary>
@@ -106,7 +106,7 @@ Running the app this way will automatically start the local MongoDB container wi
       }'
   ```
   </details>
-- POST /products/:id/restock
+- **POST /products/:id/restock**
   Increases the stock level of a product.
   <details>
   <summary>Click for example curl</summary>
@@ -116,7 +116,7 @@ Running the app this way will automatically start the local MongoDB container wi
         "quantity": 10
       }'
   </details>
-- POST /products/:id/sell
+- **POST /products/:id/sell**
   Decreases the stock level of a product (to zero or above).
   <details>
   <summary>Click for example curl</summary>
@@ -128,27 +128,14 @@ Running the app this way will automatically start the local MongoDB container wi
   </details>
 
 ### Order Management
-- POST /orders 
-  Creates a new order (fields: `customerId`, `products`). Stock reservation implemented to prevent race conditions. Orders are rolled back if stock deduction fails.
+- **POST /orders** 
+  Creates a new order (fields: `customerId`, `products`). Stock reservation is implemented to prevent race conditions and orders are rolled back if stock deduction fails.
   <details>
   <summary>Click for example curl</summary>
   ```bash
   curl -X POST http://localhost:3000/orders -H "Content-Type: application/json" -d '{ "customerId": "1", "products": [{ "productId": "1", "quantity": 2 }] }'
   ```
   </details>
-
-- **Discount Logic:**
-  - **Volume-based discounts:**
-    - 5+ units: 10% off
-    - 10+ units: 20% off
-    - 50+ units: 30% off
-  - **Seasonal & promotional discounts:**
-    - Black Friday: 25% off all products.
-    - Holiday Sales: 15% off (for a maximum of two types of products, the most profitable application of discount for the customer).
-  - **Only the highest applicable discount for given product is applied.**
-- **Location-based pricing:**
-  - Europe: +15%
-  - Asia: -5%
 
 ## MongoDB Collection Models
 ### Product
@@ -199,6 +186,21 @@ Running the app this way will automatically start the local MongoDB container wi
   "location": "string (one of 'US', 'Europe' or 'Asia')",
 }
 ```
+
+## Pricing Logic
+- **Discount Logic:**
+  - **Volume-based discounts:**
+    - 5+ units: 10% off
+    - 10+ units: 20% off
+    - 50+ units: 30% off
+  - **Seasonal & promotional discounts:**
+    - Black Friday: 25% off all products.
+    - Holiday Sales: 15% off (for a maximum of two types of products).
+  - **Only the highest applicable discount for given product (most profitable option for customer) is applied.**
+- **Location-based pricing:**
+  - Europe: +15%
+  - Asia: -5%
+  - Other: no change
 
 ## Notes
 - **Pagination** should be implemented for `/products` to ensure efficient product lookup in larger deployments.
