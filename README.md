@@ -219,4 +219,4 @@ Running the app this way will automatically start the local MongoDB container wi
 MIT
 
 ## Author
-Maciej Konieczny
+[Maciej Konieczny](https://github.com/ifmcjthenknczny/)]
