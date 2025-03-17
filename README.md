@@ -60,22 +60,27 @@ This project is a RESTful API designed to manage an inventory of products, handl
    cd product-inventory-api
    ```
 
-After that you can either [run the server on local environment](#running-the-server-on-local-environment) or [run the app using docker](#running-with-docker).
+2. Fetch all branches and switch to feature/api:
+  ```sh
+  git fetch --all && git checkout feature/api
+  ```
+
+After these steps you can either [run the server on local environment](#running-the-server-on-local-environment) or [run the app using docker](#running-with-docker).
 
 ### Running the server on local environment
-2. Install dependencies:
+3. Install dependencies:
    ```sh
    yarn
    ```
-3. Configure environment variables:
+4. Configure environment variables:
   - Rename `.env_example` to `.env` and fill it with the required database and configuration details.
-4. Start the server:
+5. Start the server:
    ```sh
    yarn start
    ```
 
 ### Running with Docker
-2. Build and run the container:
+3. Build and run the container:
    ```sh
    docker-compose up --build
    ```
