@@ -141,11 +141,11 @@ curl -X POST http://localhost:3000/orders -H "Content-Type: application/json" -d
     - 50+ units: 30% off
   - **Seasonal & promotional discounts:**
     - Black Friday: 25% off all products.
-    - Holiday Sales: 15% off selected categories.
+    - Holiday Sales: 15% off (for a maximum of two types of products, the most profitable application of discount for the customer).
   - **Location-based pricing:**
     - Europe: +15%
     - Asia: -5%
-  - **Only the highest applicable discount is applied.**
+  - **Only the highest applicable discount for given product is applied.**
 
 ## MongoDB Collection Models
 ### Product
@@ -203,6 +203,7 @@ curl -X POST http://localhost:3000/orders -H "Content-Type: application/json" -d
 - **Unit price is stored as an integer** to simplify arithmetic operations and avoid IEEE 754 floating-point precision issues. Since working with real prices is more intuitive for humans, it is converted from a float in requests and to a float in responses.
 - Since a cent cannot be divided, **discount calculations always favor the store**. For example, a 30% discount on a price of 19.99 results in 14.00 rather than 13.99.
 - Further performace optimizations are possible.
+- It is assumed that the site does not serve customers outside the US, Europe and Asia.
 
 ## License
 MIT

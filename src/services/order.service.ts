@@ -1,7 +1,7 @@
 import OrderModel from "../models/order.model";
-import { OrderItem, Order } from "../types/order.type";
+import { OrderItem, Order, PriceModifierDetails } from "../types/order.type";
 import { determineSeason } from "../utils/holiday";
-import { calculateProductPriceCoefficient, Cents, determinePriceModifiers } from "../utils/price";
+import { calculateProductPriceCoefficient, Cents, determinePriceModifiersForProduct } from "../utils/price";
 import {
     getProductsByIdAsLookupObject,
     ProductLookupObject,
@@ -15,26 +15,41 @@ import { Location } from "../types/customer.type";
 import { v4 as uuid } from "uuid";
 import { DateTime } from "luxon";
 
+const sortProductsByTotalValueAndAddData = (orderProducts: OrderItem[], productLookup: ProductLookupObject) => {
+    const orderProductsWithPrice = orderProducts.map((product) => {
+        const productData = productLookup[product.productId];
+        if (!productData) {
+            throw new Error(`Product with ID ${product.productId} is unavailable`);
+        }
+        return { ...product, unitPrice: productData.unitPrice };
+    });
+
+    const sortedOrderProductsByTotalValueWithPrice = orderProductsWithPrice.sort((a, b) => b.unitPrice * b.quantity - a.unitPrice * a.quantity);
+    return sortedOrderProductsByTotalValueWithPrice;
+};
+
 const calculateTotalAmount = (orderProducts: OrderItem[], productLookup: ProductLookupObject, customerLocation: Location, orderDate: DateTime) => {
     let totalAmount: Cents = 0;
     const dbOrderProducts: Order["products"] = [];
     const season = determineSeason(orderDate);
+    const productDiscountCounters: Partial<Record<PriceModifierDetails, number>> = {};
+    const orderProductsSortedByTotalValue = sortProductsByTotalValueAndAddData(orderProducts, productLookup);
 
-    for (const orderProduct of orderProducts) {
-        const product = productLookup[orderProduct.productId];
-        if (!product) {
-            throw new Error(`Product with ID ${orderProduct.productId} is unavailable`);
-        }
-
-        const priceModifiers = determinePriceModifiers({ location: customerLocation, productQuantity: orderProduct.quantity, season });
+    for (const orderProduct of orderProductsSortedByTotalValue) {
+        const priceModifiers = determinePriceModifiersForProduct({
+            productDiscountCounters,
+            location: customerLocation,
+            productQuantity: orderProduct.quantity,
+            season,
+        });
         const priceCoefficient = calculateProductPriceCoefficient(priceModifiers);
 
         // Rounding for the benefit of the seller
-        const unitPrice = Math.ceil(priceCoefficient * product.unitPrice);
+        const unitPrice = Math.ceil(priceCoefficient * orderProduct.unitPrice);
         dbOrderProducts.push({
             ...orderProduct,
             unitPrice,
-            ...(!!priceModifiers.length && { unitPriceBeforeModifiers: product.unitPrice, priceModifiers }),
+            ...(!!priceModifiers.length && { unitPriceBeforeModifiers: orderProduct.unitPrice, priceModifiers }),
         });
 
         totalAmount += orderProduct.quantity * unitPrice;

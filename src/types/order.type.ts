@@ -1,4 +1,6 @@
 import { Cents } from "../utils/price";
+import { Season } from "../utils/holiday";
+import { Location } from "./customer.type";
 
 type Percent = number;
 
@@ -15,8 +17,11 @@ export enum PRICE_MODIFIER_TYPES {
 
 type PriceModifierType = keyof typeof PRICE_MODIFIER_TYPES;
 
+export type PriceModifierDetails = Season | `Volume${number}` | Location;
+
 export type PriceModifier = {
     name: PriceModifierType;
+    details: PriceModifierDetails;
     modifierPercent: Percent;
 };
 

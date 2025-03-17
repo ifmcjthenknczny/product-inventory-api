@@ -3,7 +3,7 @@ import { DateTime } from "luxon";
 
 export type Season = "BlackFriday" | "HolidaySale";
 
-const determineBlackFridayDate = (year: number) => {
+const calculateBlackFridayDate = (year: number) => {
     const november = new Date(year, 10, 1);
     const dayOfWeek = november.getDay();
     const lastFriday = new Date(year, 10, 30 - ((dayOfWeek + 2) % 7));
@@ -13,7 +13,7 @@ const determineBlackFridayDate = (year: number) => {
 export const determineSeason = (day: DateTime): Season | null => {
     const hd = new Holidays("PL");
     const currentYear = day.year;
-    hd.setHoliday(determineBlackFridayDate(currentYear), {
+    hd.setHoliday(calculateBlackFridayDate(currentYear), {
         name: "Black Friday",
         type: "observance",
     });
@@ -22,6 +22,7 @@ export const determineSeason = (day: DateTime): Season | null => {
         return null;
     }
     if (holidays.some((holiday) => holiday.name === "Black Friday")) {
+        // Black Friday has priority over ordinary Holiday Sale
         return "BlackFriday";
     } else if (holidays.some((holiday) => holiday.type === "public")) {
         return "HolidaySale";

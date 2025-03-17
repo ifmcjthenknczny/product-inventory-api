@@ -29,7 +29,7 @@ const toPublicProduct = (product: Product): PublicProduct => {
 };
 
 export const getAllProducts = async () => {
-    // TODO: implementing pagination should be a good idea here
+    // Implementing pagination should be a good idea here
     const products = await ProductModel.find<Product>().lean<Product[]>();
     return products.map(toPublicProduct);
 };

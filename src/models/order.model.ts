@@ -15,6 +15,7 @@ const orderModel = new Schema<Order>(
                     type: [
                         {
                             name: { type: String, enum: PRICE_MODIFIER_TYPES, required: true },
+                            details: { type: String, required: true },
                             modifierPercent: { type: Number, required: true }, // Percentage change, eg. -30
                             _id: false,
                         },
