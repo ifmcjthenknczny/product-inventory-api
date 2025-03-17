@@ -19,7 +19,7 @@ app.use(compression());
 app.use("/products", productRoutes);
 app.use("/orders", orderRoutes);
 app.all("*", (req: Request, res: Response) => {
-    res.status(404).json({ success: false, message: "404 not found!" });
+    res.status(404).json({ error: "Page not found." });
 });
 
 if (process.env.NODE_ENV !== "test") {
