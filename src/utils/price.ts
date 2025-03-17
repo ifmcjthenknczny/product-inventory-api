@@ -1,8 +1,7 @@
 import { Location } from "./../types/customer.type";
 import { Season } from "./holiday";
-import { PriceModifier } from "../types/order.type";
+import { PriceModifierDetails, PriceModifier } from "../types/order.type";
 import { geometricSumFromPercentCoefficients } from "./common";
-import { PriceModifierDetails } from "../types/order.type";
 
 export type Cents = number;
 
@@ -12,26 +11,26 @@ export const fromCents = (value: number): number => value / 100;
 
 export type ProductDiscountCounter = Partial<Record<PriceModifierDetails, number>>;
 
-const VOLUME_DISCOUNT_PERCENTS: Record<number, number> = {
-    // min quantity of given product type, discount in percent
+const VOLUME_DISCOUNTS: Record<number, number> = {
+    // min quantity (included) of given product: discount in percent
     5: -10,
     10: -20,
     50: -30,
 };
 
-const SEASONAL_DISCOUNT_PERCENTS: Record<Season, { modifierPercent: number; maxProductTypes?: number }> = {
+const SEASONAL_DISCOUNTS: Record<Season, { modifierPercent: number; maxProductTypes?: number }> = {
     BlackFriday: { modifierPercent: -25 },
     HolidaySale: { modifierPercent: -15, maxProductTypes: 2 },
 };
 
 const calculateVolumeDiscount = (productQuantity: number): PriceModifier | null => {
-    const sortedThresholds = Object.keys(VOLUME_DISCOUNT_PERCENTS)
+    const sortedThresholds = Object.keys(VOLUME_DISCOUNTS)
         .map(Number)
         .sort((a, b) => b - a);
 
     for (const threshold of sortedThresholds) {
         if (productQuantity >= threshold) {
-            const modifierPercent = VOLUME_DISCOUNT_PERCENTS[threshold];
+            const modifierPercent = VOLUME_DISCOUNTS[threshold];
             return { name: "VolumeDiscount", details: `Volume${threshold}`, modifierPercent };
         }
     }
@@ -43,7 +42,7 @@ const calculateSeasonalDiscount = (season: Season | null, productDiscountCounter
         return null;
     }
 
-    const { modifierPercent, maxProductTypes } = SEASONAL_DISCOUNT_PERCENTS[season];
+    const { modifierPercent, maxProductTypes } = SEASONAL_DISCOUNTS[season];
 
     if (maxProductTypes === undefined || (productDiscountCounters?.[season] || 0) < maxProductTypes) {
         return { name: "SeasonalDiscount", details: season, modifierPercent };

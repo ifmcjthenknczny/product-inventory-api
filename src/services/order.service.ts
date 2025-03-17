@@ -1,7 +1,7 @@
 import OrderModel from "../models/order.model";
-import { OrderItem, Order, PriceModifierDetails } from "../types/order.type";
+import { OrderItem, Order } from "../types/order.type";
 import { determineSeason } from "../utils/holiday";
-import { calculateProductPriceCoefficient, Cents, determinePriceModifiersForProduct } from "../utils/price";
+import { calculateProductPriceCoefficient, Cents, determinePriceModifiersForProduct, ProductDiscountCounter } from "../utils/price";
 import {
     getProductsByIdAsLookupObject,
     ProductLookupObject,
@@ -32,7 +32,7 @@ const calculateTotalAmount = (orderProducts: OrderItem[], productLookup: Product
     let totalAmount: Cents = 0;
     const dbOrderProducts: Order["products"] = [];
     const season = determineSeason(orderDate);
-    const productDiscountCounters: Partial<Record<PriceModifierDetails, number>> = {};
+    const productDiscountCounters: ProductDiscountCounter = {};
     const orderProductsSortedByTotalValue = sortProductsByTotalValueAndAddData(orderProducts, productLookup);
 
     for (const orderProduct of orderProductsSortedByTotalValue) {

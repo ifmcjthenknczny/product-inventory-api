@@ -11,6 +11,7 @@ This project is a RESTful API designed to manage an inventory of products, handl
   * [Installation](#installation)
   * [Running the server on local environment](#running-the-server-on-local-environment)
   * [Running with Docker](#running-with-docker)
+  * [Testing](#testing)
 - [API Endpoints](#api-endpoints)
   * [Product Management](#product-management)
   * [Order Management](#order-management)
@@ -18,6 +19,7 @@ This project is a RESTful API designed to manage an inventory of products, handl
   * [Product](#product)
   * [Order](#order)
   * [Customer](#customer)
+- [Pricing Logic](#pricing-logic)
 - [Notes](#notes)
 - [License](#license)
 - [Author](#author)
@@ -78,6 +80,17 @@ After that you can either [run the server on local environment](#running-the-ser
    docker-compose up --build
    ```
 Running the app this way will automatically start the local MongoDB container with sample products and customers from different regions. The default env values are already set in Docker.
+
+### Testing
+For testing purposes `ts-jest` lib is used. Running tests is simple and can be done with a single command:
+
+```sh
+yarn test
+```
+
+This will execute the test suite, ensuring that all functionalities work as expected.
+
+Tests are also automatically executed as part of the Continuous Integration (CI) pipeline using GitHub Actions. This helps maintain code quality by running tests on every push and pull request, ensuring that new changes do not introduce unexpected issues.
 
 ## API Endpoints
 
@@ -216,7 +229,7 @@ Running the app this way will automatically start the local MongoDB container wi
 - Since the task requirements don't specify that a product should have a `category` field, and the `category` isn't included in the request body for the create product POST endpoint, I assumed that the Holiday Sale discount should apply to at most two product types, rather than product categories.
 
 ## License
-MIT
+This work is licensed under a [Creative Commons Attribution-NonCommercial 4.0 International License](https://creativecommons.org/licenses/by-nc/4.0/).
 
 ## Author
 [Maciej Konieczny](https://github.com/ifmcjthenknczny/)]
