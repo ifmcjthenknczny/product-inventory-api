@@ -171,6 +171,7 @@ Running the app this way will automatically start the local MongoDB container wi
       "priceModifiers": (optional) [
         {
           "name": "enum (one of 'SeasonalDiscount', 'VolumeDiscount', 'LocationBased')",
+          "details": "string",
           "modifierPercent": "int (percentage change, e.g., -30)"
         }
       ]
