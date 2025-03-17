@@ -209,4 +209,4 @@ curl -X POST http://localhost:3000/orders -H "Content-Type: application/json" -d
 MIT
 
 ## Author
-Maciej Konieczny
+[Maciej Konieczny](https://github.com/ifmcjthenknczny/)]
