@@ -82,7 +82,7 @@ Running the app this way will automatically start the local MongoDB container wi
 ## API Endpoints
 
 ### Product Management
-- **GET /products** 
+- **GET /products**  
   Retrieves a list of all products (without pagination).
   <details>
   <summary>Click for example curl</summary>
@@ -91,7 +91,7 @@ Running the app this way will automatically start the local MongoDB container wi
   ```
   </details>
 
-- **POST /products**
+- **POST /products**  
   Creates a new product (fields: `name`, `description`, `price` (float with at most 2 decimal places), `stock`).
   <details>
   <summary>Click for example curl</summary>
@@ -106,7 +106,8 @@ Running the app this way will automatically start the local MongoDB container wi
       }'
   ```
   </details>
-- **POST /products/:id/restock**
+
+- **POST /products/:id/restock**  
   Increases the stock level of a product.
   <details>
   <summary>Click for example curl</summary>
@@ -116,7 +117,8 @@ Running the app this way will automatically start the local MongoDB container wi
         "quantity": 10
       }'
   </details>
-- **POST /products/:id/sell**
+
+- **POST /products/:id/sell**  
   Decreases the stock level of a product (to zero or above).
   <details>
   <summary>Click for example curl</summary>
@@ -128,7 +130,7 @@ Running the app this way will automatically start the local MongoDB container wi
   </details>
 
 ### Order Management
-- **POST /orders** 
+- **POST /orders**  
   Creates a new order (fields: `customerId`, `products`). Stock reservation is implemented to prevent race conditions and orders are rolled back if stock deduction fails.
   <details>
   <summary>Click for example curl</summary>
