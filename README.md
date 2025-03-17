@@ -213,6 +213,7 @@ Running the app this way will automatically start the local MongoDB container wi
 - Further performace optimizations are possible.
 - It is assumed that the site does not serve customers outside the US, Europe and Asia.
 - Pricing based on customer location is not counted as discount.
+- Since the task requirements don't specify that a product should have a `category` field, and the `category` isn't included in the request body for the create product POST endpoint, I assumed that the Holiday Sale discount should apply to at most two product types, rather than product categories.
 
 ## License
 MIT
