@@ -15,6 +15,8 @@ import { Location } from "../types/customer.type";
 import { v4 as uuid } from "uuid";
 import { DateTime } from "luxon";
 
+type OrderInfo = Pick<Order, "_id" | "customerId"> & { createdAt: DateTime; location: Location };
+
 const sortProductsByTotalValueAndAddData = (orderProducts: OrderItem[], productLookup: ProductLookupObject) => {
     const orderProductsWithPrice = orderProducts.map((product) => {
         const productData = productLookup[product.productId];
@@ -28,7 +30,12 @@ const sortProductsByTotalValueAndAddData = (orderProducts: OrderItem[], productL
     return sortedOrderProductsByTotalValueWithPrice;
 };
 
-const calculateTotalAmount = (orderProducts: OrderItem[], productLookup: ProductLookupObject, customerLocation: Location, orderDate: DateTime) => {
+export const calculateTotalAmount = (
+    orderProducts: OrderItem[],
+    productLookup: ProductLookupObject,
+    customerLocation: Location,
+    orderDate: DateTime,
+) => {
     let totalAmount: Cents = 0;
     const dbOrderProducts: Order["products"] = [];
     const season = determineSeason(orderDate);
@@ -51,7 +58,6 @@ const calculateTotalAmount = (orderProducts: OrderItem[], productLookup: Product
             unitPrice,
             ...(!!priceModifiers.length && { unitPriceBeforeModifiers: orderProduct.unitPrice, priceModifiers }),
         });
-
         totalAmount += orderProduct.quantity * unitPrice;
     }
 
@@ -69,8 +75,6 @@ const processProducts = async (orderId: string, orderProducts: OrderItem[]) => {
         }
     }
 };
-
-type OrderInfo = Pick<Order, "_id" | "customerId"> & { createdAt: DateTime; location: Location };
 
 const finalizeOrder = async ({ _id, createdAt, location, customerId }: OrderInfo, orderProducts: OrderItem[], productLookup: ProductLookupObject) => {
     try {

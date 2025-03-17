@@ -5,13 +5,13 @@ import {
     createProduct,
     restockProduct,
     sellProduct,
-    getProductsByIdAsLookupObject,
     dropProductsReservationsForOrderId,
     reserveStock,
     rollbackSellProducts,
 } from "../services/product.service";
 import ProductModel from "../models/product.model";
 import { toCents, fromCents } from "../utils/price";
+import { omit } from "../utils/common";
 
 jest.mock("../utils/db", () => ({
     findNextId: jest.fn().mockResolvedValue(1),
@@ -22,26 +22,32 @@ describe("Product Service", () => {
         jest.restoreAllMocks();
     });
 
+    const fakeProducts = [
+        {
+            _id: 1,
+            name: "Product 1",
+            description: "Product 1 description",
+            unitPrice: 1000,
+            stock: 50,
+            reservedStock: [{ orderId: "order-example-id", quantity: 10 }],
+        },
+        {
+            _id: 2,
+            name: "Product 2",
+            description: "Product 2 description",
+            unitPrice: 2000,
+            stock: 30,
+            reservedStock: [],
+        },
+    ];
+
+    const orderProducts = [
+        { productId: 1, quantity: 5 },
+        { productId: 2, quantity: 3 },
+    ];
+
     describe("getAllProducts", () => {
         it("should return public products with transformed data", async () => {
-            const fakeProducts = [
-                {
-                    _id: 1,
-                    name: "Product 1",
-                    unitPrice: 1000,
-                    stock: 50,
-                    reservedStock: [{ orderId: "order1", quantity: 10 }],
-                    extraField: "foo",
-                },
-                {
-                    _id: 2,
-                    name: "Product 2",
-                    unitPrice: 2000,
-                    stock: 30,
-                    reservedStock: [],
-                    extraField: "bar",
-                },
-            ];
             jest.spyOn(ProductModel, "find").mockReturnValue({
                 lean: jest.fn().mockReturnValue(Promise.resolve(fakeProducts)),
             } as any);
@@ -51,18 +57,22 @@ describe("Product Service", () => {
             expect(publicProducts).toHaveLength(2);
             expect(publicProducts[0]).toMatchObject({
                 name: "Product 1",
+                description: "Product 1 description",
                 unitPrice: fromCents(fakeProducts[0].unitPrice),
                 stock: fakeProducts[0].stock - 10,
-                extraField: "foo",
             });
-            expect(publicProducts[0]).not.toHaveProperty("reservedStock");
-            expect(publicProducts[0]).not.toHaveProperty("unitPrice", fakeProducts[0].unitPrice);
+            expect(publicProducts[1]).toMatchObject({
+                name: "Product 2",
+                description: "Product 2 description",
+                unitPrice: fromCents(fakeProducts[1].unitPrice),
+                stock: fakeProducts[1].stock,
+            });
         });
     });
 
     describe("createProduct", () => {
         it("should create a product with a new id and converted unit price", async () => {
-            const productData = { name: "New Product", description: "Example description", unitPrice: 10, stock: 100 };
+            const productData = { ...omit(fakeProducts[1], ["_id"]) };
             const createSpy = jest.spyOn(ProductModel, "create").mockResolvedValue({ _id: 1 } as any);
 
             await createProduct(productData);
@@ -70,19 +80,21 @@ describe("Product Service", () => {
             expect(createSpy).toHaveBeenCalledWith(
                 expect.objectContaining({
                     _id: 1,
-                    name: "New Product",
-                    stock: 100,
+                    name: "Product 2",
+                    description: "Product 2 description",
                     unitPrice: toCents(productData.unitPrice),
+                    stock: productData.stock,
+                    reservedStock: [],
                 }),
             );
-        }, 10000);
+        });
     });
 
     describe("restockProduct", () => {
         it("should update product stock by incrementing the quantity", async () => {
             const productId = 1;
             const quantity = 20;
-            const updateSpy = jest.spyOn(ProductModel, "findByIdAndUpdate").mockResolvedValue({ stock: 120 });
+            const updateSpy = jest.spyOn(ProductModel, "findByIdAndUpdate").mockResolvedValue({ stock: 70 });
 
             await restockProduct(productId, quantity);
 
@@ -92,79 +104,84 @@ describe("Product Service", () => {
 
     describe("sellProduct", () => {
         it("should sell the product when enough stock is available", async () => {
-            const productId = 1;
             const quantity = 5;
-            const fakeProduct = { _id: productId, unitPrice: 1000, stock: 10, reservedStock: [] };
+            const fakeProduct = { ...fakeProducts[0], stock: 5, reservedStock: [] };
             jest.spyOn(ProductModel, "findById").mockReturnValue({
                 lean: jest.fn().mockReturnValue(Promise.resolve(fakeProduct)),
             } as any);
             const updateSpy = jest.spyOn(ProductModel, "findByIdAndUpdate").mockResolvedValue({ stock: 5 });
 
-            await sellProduct(productId, quantity, "order1");
+            await sellProduct(fakeProduct["_id"], quantity, "order-example-id");
 
-            expect(updateSpy).toHaveBeenCalledWith(productId, { $inc: { stock: -quantity } }, { new: true });
+            expect(updateSpy).toHaveBeenCalledWith(fakeProduct["_id"], { $inc: { stock: -quantity } }, { new: true });
         });
 
         it("should throw an error if the product is not found", async () => {
-            const productId = 1;
+            const productId = 42;
             const quantity = 5;
             jest.spyOn(ProductModel, "findById").mockReturnValue({
                 lean: jest.fn().mockReturnValue(Promise.resolve(null)),
             } as any);
 
-            await expect(sellProduct(productId, quantity, "order1")).rejects.toThrow(`Product with ID ${productId} is unavailable`);
+            await expect(sellProduct(productId, quantity, "order-example-id")).rejects.toThrow(`Product with ID ${productId} is unavailable`);
         });
 
         it("should throw an error if there is insufficient stock", async () => {
-            const productId = 1;
-            const quantity = 15;
-            const fakeProduct = { _id: productId, unitPrice: 1000, stock: 10, reservedStock: [] };
+            const quantity = 6;
+
+            const fakeProduct = { ...fakeProducts[0], stock: 5, reservedStock: [] };
             jest.spyOn(ProductModel, "findById").mockReturnValue({
                 lean: jest.fn().mockReturnValue(Promise.resolve(fakeProduct)),
             } as any);
 
-            await expect(sellProduct(productId, quantity, "order1")).rejects.toThrow(`Insufficient stock for product id ${productId}`);
+            await expect(sellProduct(fakeProduct["_id"], quantity, "order-example-id")).rejects.toThrow(
+                `Insufficient stock for product id ${fakeProduct["_id"]}`,
+            );
         });
 
         it("should throw a concurrency error when reserved quantity exceeds stock", async () => {
-            const productId = 1;
             const quantity = 5;
-            const fakeProduct = {
-                _id: productId,
-                unitPrice: 1000,
-                stock: 10,
-                reservedStock: [{ orderId: "x", quantity: 15 }],
-            };
+            const fakeProduct = { ...fakeProducts[0], stock: 5 };
+
             jest.spyOn(ProductModel, "findById").mockReturnValue({
                 lean: jest.fn().mockReturnValue(Promise.resolve(fakeProduct)),
             } as any);
 
-            await expect(sellProduct(productId, quantity, "order1")).rejects.toThrow("Concurrency error");
+            await expect(sellProduct(fakeProduct["_id"], quantity, "order-example-id2")).rejects.toThrow("Concurrency error");
         });
-    });
 
-    describe("getProductsByIdAsLookupObject", () => {
-        it("should return a lookup object for given product ids", async () => {
-            const fakeProducts = [
-                { _id: 1, unitPrice: 1000, stock: 50, reservedStock: [{ orderId: "order1", quantity: 5 }], name: "Product 1" },
-                { _id: 2, unitPrice: 2000, stock: 30, reservedStock: [], name: "Product 2" },
-            ];
-            jest.spyOn(ProductModel, "find").mockReturnValue({
-                lean: jest.fn().mockReturnValue(Promise.resolve(fakeProducts)),
+        it("should allow transaction when enough stock is reserved", async () => {
+            const quantity = 10;
+            const fakeProduct = { ...fakeProducts[0], stock: 10 };
+
+            jest.spyOn(ProductModel, "findById").mockReturnValue({
+                lean: jest.fn().mockReturnValue(Promise.resolve(fakeProduct)),
             } as any);
 
-            const lookup = await getProductsByIdAsLookupObject([1, 2]);
+            const updateSpy = jest.spyOn(ProductModel, "findByIdAndUpdate").mockResolvedValue({ stock: 0 });
 
-            expect(lookup).toHaveProperty("1");
-            expect(lookup).toHaveProperty("2");
-            expect(lookup[1]).not.toHaveProperty("_id");
-            expect(lookup[1]).toMatchObject({ name: "Product 1" });
+            await sellProduct(fakeProduct["_id"], quantity, fakeProduct.reservedStock[0].orderId);
+
+            expect(updateSpy).toHaveBeenCalledWith(fakeProduct["_id"], { $inc: { stock: -quantity } }, { new: true });
+        });
+
+        it("should throw an error if there is insufficient stock because of reserved stock for other order id", async () => {
+            const quantity = 10;
+            const fakeProduct = { ...fakeProducts[0], stock: 10 };
+
+            jest.spyOn(ProductModel, "findById").mockReturnValue({
+                lean: jest.fn().mockReturnValue(Promise.resolve(fakeProduct)),
+            } as any);
+
+            await expect(sellProduct(fakeProduct["_id"], quantity, "order-example-id-2")).rejects.toThrow(
+                `Insufficient stock for product id ${fakeProduct["_id"]}`,
+            );
         });
     });
 
     describe("dropProductsReservationsForOrderId", () => {
         it("should drop reservations for the given order id", async () => {
-            const orderId = "order1";
+            const orderId = "order-example-id";
 
             const updateManySpy = jest.spyOn(ProductModel, "updateMany").mockResolvedValue({ acknowledged: true, modifiedCount: 1 } as any);
 
@@ -175,12 +192,9 @@ describe("Product Service", () => {
     });
 
     describe("reserveStock", () => {
+        const orderId = "order-example-id";
+
         it("should reserve stock for each order product when enough stock exists", async () => {
-            const orderId = "order1";
-            const orderProducts = [
-                { productId: 1, quantity: 5 },
-                { productId: 2, quantity: 3 },
-            ];
             jest.spyOn(ProductModel, "find").mockReturnValue({
                 lean: jest.fn().mockReturnValue(
                     Promise.resolve([
@@ -199,7 +213,6 @@ describe("Product Service", () => {
         });
 
         it("should throw an error and drop reservations if a product is unavailable", async () => {
-            const orderId = "order1";
             const orderProducts = [{ productId: 420, quantity: 5 }];
             jest.spyOn(ProductModel, "find").mockReturnValue({
                 lean: jest.fn().mockReturnValue(Promise.resolve([])),
@@ -211,14 +224,13 @@ describe("Product Service", () => {
         });
 
         it("should throw an error if there is insufficient stock", async () => {
-            const orderId = "order1";
             const orderProducts = [{ productId: 1, quantity: 15 }];
             jest.spyOn(ProductModel, "find").mockReturnValue({
                 lean: jest.fn().mockReturnValue(Promise.resolve([{ _id: 1, unitPrice: 1000, stock: 10, reservedStock: [] }])),
             } as any);
             const dropReservationsSpy = jest.spyOn(ProductModel, "updateMany").mockResolvedValue({ acknowledged: true, modifiedCount: 1 } as any);
 
-            await expect(reserveStock(orderId, orderProducts)).rejects.toThrow(`Insufficient stock for product id 1`);
+            await expect(reserveStock(orderId, orderProducts)).rejects.toThrow(`Insufficient stock for product id ${orderProducts[0].productId}`);
             expect(dropReservationsSpy).toHaveBeenCalled();
         });
     });

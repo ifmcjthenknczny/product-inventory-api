@@ -11,14 +11,14 @@ export const fromCents = (value: number): number => value / 100;
 
 export type ProductDiscountCounter = Partial<Record<PriceModifierDetails, number>>;
 
-const VOLUME_DISCOUNTS: Record<number, number> = {
+export const VOLUME_DISCOUNTS: Record<number, number> = {
     // min quantity (included) of given product: discount in percent
     5: -10,
     10: -20,
     50: -30,
 };
 
-const SEASONAL_DISCOUNTS: Record<Season, { modifierPercent: number; maxProductTypes?: number }> = {
+export const SEASONAL_DISCOUNTS: Record<Season, { modifierPercent: number; maxProductTypes?: number }> = {
     BlackFriday: { modifierPercent: -25 },
     HolidaySale: { modifierPercent: -15, maxProductTypes: 2 },
 };
