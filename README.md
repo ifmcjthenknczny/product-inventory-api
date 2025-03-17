@@ -145,10 +145,10 @@ Running the app this way will automatically start the local MongoDB container wi
   - **Seasonal & promotional discounts:**
     - Black Friday: 25% off all products.
     - Holiday Sales: 15% off (for a maximum of two types of products, the most profitable application of discount for the customer).
-  - **Location-based pricing:**
-    - Europe: +15%
-    - Asia: -5%
   - **Only the highest applicable discount for given product is applied.**
+- **Location-based pricing:**
+  - Europe: +15%
+  - Asia: -5%
 
 ## MongoDB Collection Models
 ### Product
@@ -207,6 +207,7 @@ Running the app this way will automatically start the local MongoDB container wi
 - Since a cent cannot be divided, **discount calculations always favor the store**. For example, a 30% discount on a price of 19.99 results in 14.00 rather than 13.99.
 - Further performace optimizations are possible.
 - It is assumed that the site does not serve customers outside the US, Europe and Asia.
+- Pricing based on customer location is not counted as discount.
 
 ## License
 MIT
