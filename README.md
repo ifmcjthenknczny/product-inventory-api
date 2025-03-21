@@ -74,7 +74,11 @@ After these steps you can either [run the server on local environment](#running-
    ```
 4. Configure environment variables:
   - Rename `.env_example` to `.env` and fill it with the required database and configuration details.
-5. Start the server:
+5. If you are running the app for the first time, build it:
+  ```sh
+  yarn build
+  ```
+6. Start the server:
    ```sh
    yarn start
    ```
