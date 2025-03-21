@@ -18,7 +18,7 @@ import { DateTime } from "luxon";
 type OrderInfo = Pick<Order, "_id" | "customerId"> & { createdAt: DateTime; location: Location };
 
 const applyDiscountsAndCalculateTotalAmount = (dbOrderProducts: Order["products"]) => {
-    let totalAmount = 0;
+    let totalAmount: Cents = 0;
     for (const [index, orderProduct] of dbOrderProducts.entries()) {
         if (orderProduct.priceModifiers?.length) {
             const priceCoefficient = calculateProductPriceCoefficient(orderProduct.priceModifiers);
@@ -28,9 +28,7 @@ const applyDiscountsAndCalculateTotalAmount = (dbOrderProducts: Order["products"
                 unitPriceBeforeModifiers: orderProduct.unitPrice,
                 unitPrice,
             };
-            continue;
         }
-
         const { unitPrice, quantity } = dbOrderProducts[index];
         totalAmount += unitPrice * quantity;
     }

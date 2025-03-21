@@ -1,9 +1,6 @@
 /* eslint-disable no-console */
 
-import dotenv from "dotenv";
 import mongoose from "mongoose";
-
-dotenv.config();
 
 let cachedDb: mongoose.mongo.Db | undefined = undefined;
 

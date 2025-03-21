@@ -6,6 +6,18 @@ import productRoutes from "./routes/product.route";
 import orderRoutes from "./routes/order.route";
 import { dbConnect } from "./config/database.config";
 import bodyParser from "body-parser";
+import Joi from "joi";
+import dotenv from "dotenv";
+import validateSchema from "./utils/validate";
+
+dotenv.config();
+
+const envSchema = Joi.object({
+    MONGO_URI: Joi.string().required(),
+    PORT: Joi.number().integer().default(3000),
+}).unknown(true);
+
+validateSchema(process.env, envSchema);
 
 const app = express();
 app.use(bodyParser.json());
