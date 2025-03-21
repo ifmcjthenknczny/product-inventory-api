@@ -114,7 +114,7 @@ Tests are also automatically executed as part of the Continuous Integration (CI)
   </details>
 
 - **POST /products**  
-  Creates a new product (fields: `name`, `description`, `price` (float with at most 2 decimal places), `stock`).
+  Creates a new product (fields: `name`, `description`, `price` (float with at most 2 decimal places), `stock`, `categoryId`).
   <details>
   <summary>Click for example curl</summary>
   ```bash
@@ -124,7 +124,8 @@ Tests are also automatically executed as part of the Continuous Integration (CI)
         "name": "I'm egg",
         "description": "Easter egg",
         "unitPrice": 0.30,
-        "stock": 50
+        "stock": 50,
+        "categoryId": 3
       }'
   ```
   </details>
@@ -165,11 +166,12 @@ Tests are also automatically executed as part of the Continuous Integration (CI)
 ### Product
 ```json
 {
-  "_id": "int",
+  "_id": "int (min 1)",
   "name": "string (max 50 chars)",
   "description": "string (max 50 chars)",
   "unitPrice": "int (stored as integer, mapped to float in API)",
   "stock": "int (min 0)",
+  "categoryId": "int (min 1)",
   "reservedStock": (optional) [
     {
       "orderId": "string",
@@ -183,10 +185,10 @@ Tests are also automatically executed as part of the Continuous Integration (CI)
 ```json
 {
   "_id": "string",
-  "customerId": "int",
+  "customerId": "int (min 1)",
   "products": [
     {
-      "productId": "int",
+      "productId": "int (min 1)",
       "quantity": "int (min 1)",
       "unitPrice": "int (min 0)",
       "unitPriceBeforeModifiers": "int (min 0, optional)",
@@ -206,7 +208,7 @@ Tests are also automatically executed as part of the Continuous Integration (CI)
 ### Customer
 ```json
 {
-  "_id": "int",
+  "_id": "int (min 1)",
   "name": "string",
   "location": "string (one of 'US', 'Europe' or 'Asia')",
 }
@@ -220,22 +222,22 @@ Tests are also automatically executed as part of the Continuous Integration (CI)
     - 50+ units: 30% off
   - **Seasonal & promotional discounts:**
     - Black Friday: 25% off all products.
-    - Holiday Sales: 15% off (for a maximum of two types of products).
-  - **Only the highest applicable discount for given product (most profitable option for customer) is applied.**
+    - Holiday Sales: 15% off (for a maximum of two categories).
+  - Only the highest applicable discount for given product (most profitable option for customer) is applied.
+  - Categories with the highest total discount value are prioritized when applying category-limited discounts.
 - **Location-based pricing:**
   - Europe: +15%
   - Asia: -5%
-  - Other: no change
+  - US: no change
 
 ## Notes
 - **Pagination** should be implemented for `/products` to ensure efficient product lookup in larger deployments.
 - **Removing the `sellProduct` endpoint** is recommended, as selling should be managed through the `createOrder` flow to maintain stock consistency.
 - **Unit price is stored as an integer** to simplify arithmetic operations and avoid IEEE 754 floating-point precision issues. Since working with real prices is more intuitive for humans, it is converted from a float in requests and to a float in responses.
-- Since a cent cannot be divided, **discount calculations always favor the store**. For example, a 30% discount on a price of 19.99 results in 14.00 rather than 13.99.
-- Further performace optimizations are possible.
+- Since a cent cannot be divided, a decision was made that **discount calculations should favor the store**. For example, a 30% discount on a price of 19.99 results in 14.00 rather than 13.99.
+- Further performace optimizations are possible, as it was not prioritized in this application yet.
 - It is assumed that the site does not serve customers outside the US, Europe and Asia.
 - Pricing based on customer location is not counted as discount.
-- Since the task requirements don't specify that a product should have a `category` field, and the `category` isn't included in the request body for the create product POST endpoint, I assumed that the Holiday Sale discount should apply to at most two product types, rather than product categories.
 
 ## License
 This work is licensed under a [Creative Commons Attribution-NonCommercial 4.0 International License](https://creativecommons.org/licenses/by-nc/4.0/).

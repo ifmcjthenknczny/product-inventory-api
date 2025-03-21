@@ -1,7 +1,7 @@
 import OrderModel from "../models/order.model";
 import { OrderItem, Order } from "../types/order.type";
 import { determineSeason } from "../utils/holiday";
-import { calculateProductPriceCoefficient, Cents, determinePriceModifiersForProduct, ProductDiscountCounter } from "../utils/price";
+import { calculateProductPriceCoefficient, Cents, determinePriceModifierCandidatesForProduct, stripExcessCategoryDiscounts } from "../utils/price";
 import {
     getProductsByIdAsLookupObject,
     ProductLookupObject,
@@ -17,7 +17,27 @@ import { DateTime } from "luxon";
 
 type OrderInfo = Pick<Order, "_id" | "customerId"> & { createdAt: DateTime; location: Location };
 
-const sortProductsByTotalValueAndAddData = (orderProducts: OrderItem[], productLookup: ProductLookupObject) => {
+const applyDiscountsAndCalculateTotalAmount = (dbOrderProducts: Order["products"]) => {
+    let totalAmount = 0;
+    for (const [index, orderProduct] of dbOrderProducts.entries()) {
+        if (orderProduct.priceModifiers?.length) {
+            const priceCoefficient = calculateProductPriceCoefficient(orderProduct.priceModifiers);
+            const unitPrice = Math.ceil(priceCoefficient * orderProduct.unitPrice);
+            dbOrderProducts[index] = {
+                ...dbOrderProducts[index],
+                unitPriceBeforeModifiers: orderProduct.unitPrice,
+                unitPrice,
+            };
+            continue;
+        }
+
+        const { unitPrice, quantity } = dbOrderProducts[index];
+        totalAmount += unitPrice * quantity;
+    }
+    return totalAmount;
+};
+
+const addPriceToOrderProducts = (orderProducts: OrderItem[], productLookup: ProductLookupObject) => {
     const orderProductsWithPrice = orderProducts.map((product) => {
         const productData = productLookup[product.productId];
         if (!productData) {
@@ -26,8 +46,7 @@ const sortProductsByTotalValueAndAddData = (orderProducts: OrderItem[], productL
         return { ...product, unitPrice: productData.unitPrice };
     });
 
-    const sortedOrderProductsByTotalValueWithPrice = orderProductsWithPrice.sort((a, b) => b.unitPrice * b.quantity - a.unitPrice * a.quantity);
-    return sortedOrderProductsByTotalValueWithPrice;
+    return orderProductsWithPrice;
 };
 
 export const calculateTotalAmount = (
@@ -36,30 +55,25 @@ export const calculateTotalAmount = (
     customerLocation: Location,
     orderDate: DateTime,
 ) => {
-    let totalAmount: Cents = 0;
     const dbOrderProducts: Order["products"] = [];
     const season = determineSeason(orderDate);
-    const productDiscountCounters: ProductDiscountCounter = {};
-    const orderProductsSortedByTotalValue = sortProductsByTotalValueAndAddData(orderProducts, productLookup);
+    const orderProductsSortedByTotalValue = addPriceToOrderProducts(orderProducts, productLookup);
 
     for (const orderProduct of orderProductsSortedByTotalValue) {
-        const priceModifiers = determinePriceModifiersForProduct({
-            productDiscountCounters,
+        const priceModifiers = determinePriceModifierCandidatesForProduct({
             location: customerLocation,
             productQuantity: orderProduct.quantity,
             season,
         });
-        const priceCoefficient = calculateProductPriceCoefficient(priceModifiers);
 
-        // Rounding for the benefit of the seller
-        const unitPrice = Math.ceil(priceCoefficient * orderProduct.unitPrice);
         dbOrderProducts.push({
             ...orderProduct,
-            unitPrice,
-            ...(!!priceModifiers.length && { unitPriceBeforeModifiers: orderProduct.unitPrice, priceModifiers }),
+            ...(!!priceModifiers.length && { priceModifiers }),
         });
-        totalAmount += orderProduct.quantity * unitPrice;
     }
+
+    stripExcessCategoryDiscounts(dbOrderProducts, productLookup);
+    const totalAmount: Cents = applyDiscountsAndCalculateTotalAmount(dbOrderProducts);
 
     return { dbOrderProducts, totalAmount };
 };

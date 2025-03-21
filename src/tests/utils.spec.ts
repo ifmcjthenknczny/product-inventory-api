@@ -1,14 +1,14 @@
 import { DateTime } from "luxon";
 import { determineSeason } from "../utils/holiday";
 import {
-    determinePriceModifiersForProduct,
+    determinePriceModifierCandidatesForProduct,
     calculateProductPriceCoefficient,
     VOLUME_DISCOUNTS,
     LOCATION_PRICE_ADJUSTMENTS_PERCENT,
     SEASONAL_DISCOUNTS,
 } from "../utils/price";
 import { Location } from "../types/customer.type";
-import { PriceModifier, PriceModifierDetails } from "../types/order.type";
+import { PriceModifier } from "../types/order.type";
 
 jest.mock("../models/order.model");
 
@@ -31,11 +31,9 @@ describe("Holiday Utils - determineSeason", () => {
 
 describe("Price Utils - determinePriceModifiersForProduct", () => {
     it("should prefer seasonal over volume discount, when it is best from user's point of view", () => {
-        const productDiscountCounters: Partial<Record<PriceModifierDetails, number>> = {};
         const productQuantity = 15;
-        const priceModifiers = determinePriceModifiersForProduct({
+        const priceModifiers = determinePriceModifierCandidatesForProduct({
             location: "Europe" as Location,
-            productDiscountCounters,
             productQuantity,
             season: "BlackFriday",
         });
@@ -47,11 +45,9 @@ describe("Price Utils - determinePriceModifiersForProduct", () => {
     });
 
     it("should prefer volume over seasonal discount, when it is best from user's point of view", () => {
-        const productDiscountCounters: Partial<Record<PriceModifierDetails, number>> = {};
         const productQuantity = 50;
-        const priceModifiers = determinePriceModifiersForProduct({
+        const priceModifiers = determinePriceModifierCandidatesForProduct({
             location: "US" as Location,
-            productDiscountCounters,
             productQuantity,
             season: "BlackFriday",
         });
@@ -63,11 +59,9 @@ describe("Price Utils - determinePriceModifiersForProduct", () => {
     });
 
     it("should not return only location based modifiers if not qualified for discount", () => {
-        const productDiscountCounters: Partial<Record<PriceModifierDetails, number>> = {};
         const productQuantity = 4;
-        const priceModifiers = determinePriceModifiersForProduct({
+        const priceModifiers = determinePriceModifierCandidatesForProduct({
             location: "US" as Location,
-            productDiscountCounters,
             productQuantity,
             season: null,
         });

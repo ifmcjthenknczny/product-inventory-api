@@ -1,15 +1,14 @@
 import { Location } from "./../types/customer.type";
 import { Season } from "./holiday";
-import { PriceModifierDetails, PriceModifier } from "../types/order.type";
+import { Order, PriceModifier } from "../types/order.type";
 import { geometricSumFromPercentCoefficients } from "./common";
+import { ProductLookupObject } from "../services/product.service";
 
 export type Cents = number;
 
 export const toCents = (value: number): number => Math.round(value * 100);
 
 export const fromCents = (value: number): number => value / 100;
-
-export type ProductDiscountCounter = Partial<Record<PriceModifierDetails, number>>;
 
 export const VOLUME_DISCOUNTS: Record<number, number> = {
     // min quantity (included) of given product: discount in percent
@@ -18,9 +17,9 @@ export const VOLUME_DISCOUNTS: Record<number, number> = {
     50: -30,
 };
 
-export const SEASONAL_DISCOUNTS: Record<Season, { modifierPercent: number; maxProductTypes?: number }> = {
+export const SEASONAL_DISCOUNTS: Record<Season, { modifierPercent: number; categoryLimit?: number }> = {
     BlackFriday: { modifierPercent: -25 },
-    HolidaySale: { modifierPercent: -15, maxProductTypes: 2 },
+    HolidaySale: { modifierPercent: -15, categoryLimit: 2 },
 };
 
 const calculateVolumeDiscount = (productQuantity: number): PriceModifier | null => {
@@ -37,18 +36,8 @@ const calculateVolumeDiscount = (productQuantity: number): PriceModifier | null 
     return null;
 };
 
-const calculateSeasonalDiscount = (season: Season | null, productDiscountCounters: ProductDiscountCounter): PriceModifier | null => {
-    if (!season) {
-        return null;
-    }
-
-    const { modifierPercent, maxProductTypes } = SEASONAL_DISCOUNTS[season];
-
-    if (maxProductTypes === undefined || (productDiscountCounters?.[season] || 0) < maxProductTypes) {
-        return { name: "SeasonalDiscount", details: season, modifierPercent };
-    }
-
-    return null;
+const calculateSeasonalDiscount = (season: Season | null): PriceModifier | null => {
+    return season ? { name: "SeasonalDiscount", details: season, modifierPercent: SEASONAL_DISCOUNTS[season].modifierPercent } : null;
 };
 
 const determineHighestDiscountType = (...discounts: (PriceModifier | null | undefined)[]): PriceModifier | null => {
@@ -61,22 +50,11 @@ const determineHighestDiscountType = (...discounts: (PriceModifier | null | unde
     return validDiscounts.reduce((lowest, current) => (current.modifierPercent < lowest.modifierPercent ? current : lowest));
 };
 
-const determineProductDiscount = (
-    productQuantity: number,
-    season: Season | null,
-    productDiscountCounters: ProductDiscountCounter,
-): PriceModifier | null => {
+const determineProductDiscount = (productQuantity: number, season: Season | null): PriceModifier | null => {
     const volumeDiscount = calculateVolumeDiscount(productQuantity);
-    const seasonalDiscount = calculateSeasonalDiscount(season, productDiscountCounters);
+    const seasonalDiscount = calculateSeasonalDiscount(season);
 
-    const appliedDiscount = determineHighestDiscountType(volumeDiscount, seasonalDiscount);
-
-    if (appliedDiscount?.details) {
-        const detailKey = appliedDiscount.details;
-        productDiscountCounters[detailKey] = (productDiscountCounters[detailKey] || 0) + 1;
-    }
-
-    return appliedDiscount;
+    return determineHighestDiscountType(volumeDiscount, seasonalDiscount);
 };
 
 export const LOCATION_PRICE_ADJUSTMENTS_PERCENT: Record<Location, number> = {
@@ -85,18 +63,16 @@ export const LOCATION_PRICE_ADJUSTMENTS_PERCENT: Record<Location, number> = {
     US: 0,
 };
 
-export const determinePriceModifiersForProduct = ({
+export const determinePriceModifierCandidatesForProduct = ({
     location,
-    productDiscountCounters,
     productQuantity,
     season,
 }: {
-    productDiscountCounters: ProductDiscountCounter;
     location: Location;
     productQuantity: number;
     season: Season | null;
 }): PriceModifier[] => {
-    const discount = determineProductDiscount(productQuantity, season, productDiscountCounters);
+    const discount = determineProductDiscount(productQuantity, season);
     const priceLocationModifier: PriceModifier = {
         name: "LocationBased",
         details: location,
@@ -108,4 +84,55 @@ export const determinePriceModifiersForProduct = ({
 
 export const calculateProductPriceCoefficient = (priceModifiers: PriceModifier[]): number => {
     return geometricSumFromPercentCoefficients(priceModifiers.map((modifier) => modifier.modifierPercent));
+};
+
+const getSeasonalDiscountsWithCategoryLimit = (): (keyof typeof SEASONAL_DISCOUNTS)[] => {
+    return Object.entries(SEASONAL_DISCOUNTS)
+        .filter(([, value]) => "categoryLimit" in value)
+        .sort(([, a], [, b]) => b.modifierPercent - a.modifierPercent)
+        .map(([key]) => key as keyof typeof SEASONAL_DISCOUNTS);
+};
+
+const findHighestDiscountCategories = (orderProducts: Order["products"], productLookupObject: ProductLookupObject, categoryLimit: number) => {
+    const categoriesByDiscountedValue = orderProducts.reduce<Record<number, number>>((acc, orderProduct) => {
+        const categoryId = productLookupObject[orderProduct.productId]?.categoryId;
+        if (categoryId) {
+            acc[categoryId] = (acc[categoryId] || 0) + (orderProduct.unitPriceBeforeModifiers ?? orderProduct.unitPrice) * orderProduct.quantity;
+        }
+        return acc;
+    }, {});
+
+    const discountedCategoryIds = Object.entries(categoriesByDiscountedValue)
+        .map(([categoryId, totalValue]) => ({ categoryId: Number(categoryId), totalValue }))
+        .sort((a, b) => b.totalValue - a.totalValue)
+        .slice(0, categoryLimit)
+        .map((categoryInfo) => categoryInfo.categoryId);
+
+    return discountedCategoryIds;
+};
+
+export const stripExcessCategoryDiscounts = (dbOrderProducts: Order["products"], productLookupObject: ProductLookupObject) => {
+    const seasonalDiscounts = getSeasonalDiscountsWithCategoryLimit();
+
+    for (const season of seasonalDiscounts) {
+        const categoryLimit = SEASONAL_DISCOUNTS[season].categoryLimit!;
+        const discountedProducts = dbOrderProducts.filter((orderProduct) =>
+            orderProduct.priceModifiers?.some((priceModifier) => priceModifier.details === season),
+        );
+        const discountedCategoryIds = findHighestDiscountCategories(discountedProducts, productLookupObject, categoryLimit);
+
+        for (const [index, orderProduct] of dbOrderProducts.entries()) {
+            const isSeasonalDiscounted = orderProduct.priceModifiers?.some((modifier) => modifier.details === season);
+            const isInDiscountedCategory = discountedCategoryIds.includes(productLookupObject[orderProduct.productId]?.categoryId);
+
+            if (isSeasonalDiscounted && !isInDiscountedCategory) {
+                const newPriceModifiers = orderProduct.priceModifiers!.filter((priceModifier) => priceModifier.details !== season);
+                if (newPriceModifiers.length) {
+                    dbOrderProducts[index].priceModifiers = newPriceModifiers;
+                    continue;
+                }
+                delete dbOrderProducts[index].priceModifiers;
+            }
+        }
+    }
 };

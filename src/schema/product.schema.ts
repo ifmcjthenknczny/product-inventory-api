@@ -6,6 +6,7 @@ export const createProductSchema = Joi.object({
     description: Joi.string().min(1).max(50).required(),
     unitPrice: priceSchema.required(), // floating price
     stock: Joi.number().integer().min(0).required(),
+    categoryId: idSchema.required(),
 }).required();
 
 export const updateProductStockQuerySchema = Joi.object({

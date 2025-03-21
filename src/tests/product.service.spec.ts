@@ -29,6 +29,7 @@ describe("Product Service", () => {
             description: "Product 1 description",
             unitPrice: 1000,
             stock: 50,
+            categoryId: 1,
             reservedStock: [{ orderId: "order-example-id", quantity: 10 }],
         },
         {
@@ -37,6 +38,7 @@ describe("Product Service", () => {
             description: "Product 2 description",
             unitPrice: 2000,
             stock: 30,
+            categoryId: 2,
             reservedStock: [],
         },
     ];

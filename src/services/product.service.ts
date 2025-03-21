@@ -22,7 +22,7 @@ const toDbCreateProduct = async (product: CreateProductBody): Promise<DbCreatePr
 
 const toPublicProduct = (product: Product): PublicProduct => {
     return {
-        ...omit(product, ["reservedStock", "unitPrice", "stock"]),
+        ...omit(product, ["reservedStock", "unitPrice", "stock", "createdAt", "updatedAt"]),
         unitPrice: fromCents(product.unitPrice),
         stock: product.stock - sum(...(product.reservedStock || []).map((reserved) => reserved.quantity)),
     };
@@ -74,7 +74,10 @@ export const sellProduct = async (productId: UpdateStockQuery["id"], quantity: U
 
 export const getProductsByIdAsLookupObject = async (productIds: Product["_id"][]): Promise<ProductLookupObject> => {
     // Retrieves multiple products from the database and optimizes lookup efficiency
-    const dbProducts = await ProductModel.find<Product>({ _id: { $in: productIds } }, { unitPrice: 1, stock: 1, reservedStock: 1 }).lean<Product[]>();
+    const dbProducts = await ProductModel.find<Product>(
+        { _id: { $in: productIds } },
+        { unitPrice: 1, stock: 1, reservedStock: 1, categoryId: 1 },
+    ).lean<Product[]>();
 
     const productObject = Object.fromEntries(dbProducts.map((p) => [p._id.toString(), omit(p, ["_id"])]));
 

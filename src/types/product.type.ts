@@ -11,6 +11,7 @@ export type Product = {
     description: string;
     unitPrice: Cents;
     stock: number;
+    categoryId: number;
     reservedStock?: ReservedStock[];
     createdAt: Date;
     updatedAt?: Date;

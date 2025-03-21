@@ -12,7 +12,7 @@ import {
 } from "../services/product.service";
 import { getCustomer } from "../services/customer.service";
 import { determineSeason } from "../utils/holiday";
-import { calculateProductPriceCoefficient, determinePriceModifiersForProduct } from "../utils/price";
+import { calculateProductPriceCoefficient, determinePriceModifierCandidatesForProduct } from "../utils/price";
 import { Location } from "../types/customer.type";
 import { DateTime } from "luxon";
 import { OrderItem } from "../types/order.type";
@@ -48,7 +48,7 @@ describe("Order Service - processAndCreateOrder", () => {
         (rollbackSellProducts as jest.Mock).mockResolvedValue(undefined);
 
         (determineSeason as jest.Mock).mockReturnValue("HolidaySale");
-        (determinePriceModifiersForProduct as jest.Mock).mockReturnValue([]);
+        (determinePriceModifierCandidatesForProduct as jest.Mock).mockReturnValue([]);
         (calculateProductPriceCoefficient as jest.Mock).mockReturnValue(1);
 
         (OrderModel.create as jest.Mock).mockResolvedValue({ _id: "orderId" });

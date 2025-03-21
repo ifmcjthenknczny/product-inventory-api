@@ -8,6 +8,7 @@ const productSchema = new Schema<Product>(
         description: { type: String, required: true, maxlength: 50 },
         unitPrice: { type: Number, required: true, min: 1 }, // in cents
         stock: { type: Number, required: true, min: 0 },
+        categoryId: { type: Number, required: true, min: 0 },
         reservedStock: [
             {
                 orderId: { type: String, required: true },
