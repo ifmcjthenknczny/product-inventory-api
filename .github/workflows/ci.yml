@@ -1,0 +1,30 @@
+name: CI
+
+on:
+    push:
+        branches:
+            - '**'
+
+jobs:
+    build:
+        runs-on: ubuntu-latest
+        timeout-minutes: 5
+
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v2
+
+            - name: Install yarn
+              run: npm install -g yarn
+
+            - name: Install dependencies
+              run: yarn
+
+            - name: Lint
+              run: yarn lint
+
+            - name: Build
+              run: yarn build
+
+            - name: Test
+              run: yarn test
