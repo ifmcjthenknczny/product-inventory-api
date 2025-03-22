@@ -17,7 +17,7 @@ import { DateTime } from "luxon";
 
 type OrderInfo = Pick<Order, "_id" | "customerId"> & { createdAt: DateTime; location: Location };
 
-const applyDiscountsAndCalculateTotalAmount = (dbOrderProducts: Order["products"]) => {
+const applyPriceModifiersAndCalculateTotalAmount = (dbOrderProducts: Order["products"]) => {
     let totalAmount: Cents = 0;
     for (const [index, orderProduct] of dbOrderProducts.entries()) {
         if (orderProduct.priceModifiers?.length) {
@@ -66,12 +66,12 @@ export const calculateTotalAmount = (
 
         dbOrderProducts.push({
             ...orderProduct,
-            ...(!!priceModifiers.length && { priceModifiers }),
+            ...(!!priceModifiers?.length && { priceModifiers: priceModifiers.filter((priceModifier) => !!priceModifier.modifierPercent) }),
         });
     }
 
     stripExcessCategoryDiscounts(dbOrderProducts, productLookup);
-    const totalAmount: Cents = applyDiscountsAndCalculateTotalAmount(dbOrderProducts);
+    const totalAmount: Cents = applyPriceModifiersAndCalculateTotalAmount(dbOrderProducts);
 
     return { dbOrderProducts, totalAmount };
 };

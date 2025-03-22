@@ -6,11 +6,28 @@ import {
     VOLUME_DISCOUNTS,
     LOCATION_PRICE_ADJUSTMENTS_PERCENT,
     SEASONAL_DISCOUNTS,
+    stripExcessCategoryDiscounts,
+    findHighestDiscountCategories,
 } from "../utils/price";
 import { Location } from "../types/customer.type";
-import { PriceModifier } from "../types/order.type";
+import { Order, PriceModifier } from "../types/order.type";
+import { ProductLookupObject } from "../services/product.service";
 
 jest.mock("../models/order.model");
+
+const orderProducts = [
+    { productId: 1, unitPrice: 100, quantity: 2, priceModifiers: [{ details: "HolidaySale" }] },
+    { productId: 2, unitPrice: 50, quantity: 4, priceModifiers: [{ details: "HolidaySale" }] },
+    { productId: 3, unitPrice: 200, quantity: 1, priceModifiers: [{ details: "HolidaySale" }] },
+    { productId: 4, unitPrice: 75, quantity: 3, priceModifiers: [{ details: "HolidaySale" }] },
+] as Order["products"];
+
+const productLookupObject = {
+    1: { categoryId: 30 },
+    2: { categoryId: 10 },
+    3: { categoryId: 10 },
+    4: { categoryId: 20 },
+} as unknown as ProductLookupObject;
 
 describe("Holiday Utils - determineSeason", () => {
     it("should return BlackFriday for Black Friday date", () => {
@@ -77,5 +94,22 @@ describe("Price Utils - calculateProductPriceCoefficient", () => {
             { name: "LocationBased", details: "Europe", modifierPercent: 15 },
         ];
         expect(calculateProductPriceCoefficient(priceModifiers)).toBeCloseTo(0.92, 2);
+    });
+});
+
+describe("Price Utils - findHighestDiscountCategories", () => {
+    it("should return the top N categories with the highest total discounted value", () => {
+        expect(findHighestDiscountCategories([...orderProducts], productLookupObject, 2)).toEqual([10, 20]);
+    });
+});
+
+describe("Price Utils - stripExcessCategoryDiscounts", () => {
+    it("should remove seasonal discounts from products in excess categories", () => {
+        stripExcessCategoryDiscounts([...orderProducts], productLookupObject);
+
+        expect(orderProducts[0].priceModifiers).toBeUndefined();
+        expect(orderProducts[1].priceModifiers).toEqual([{ details: "HolidaySale" }]);
+        expect(orderProducts[2].priceModifiers).toEqual([{ details: "HolidaySale" }]);
+        expect(orderProducts[2].priceModifiers).toEqual([{ details: "HolidaySale" }]);
     });
 });

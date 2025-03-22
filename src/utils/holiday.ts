@@ -1,5 +1,6 @@
 import Holidays from "date-holidays";
 import { DateTime } from "luxon";
+import { getSeasonalDiscountsSortedByModifierPercent } from "./price";
 
 export type Season = "BlackFriday" | "HolidaySale";
 
@@ -21,11 +22,13 @@ export const determineSeason = (day: DateTime): Season | null => {
     if (!holidays || !holidays?.length) {
         return null;
     }
+    const seasons: Season[] = [];
     if (holidays.some((holiday) => holiday.name === "Black Friday")) {
-        // Black Friday has priority over ordinary Holiday Sale
-        return "BlackFriday";
-    } else if (holidays.some((holiday) => holiday.type === "public")) {
-        return "HolidaySale";
+        seasons.push("BlackFriday");
     }
-    return null;
+    if (holidays.some((holiday) => holiday.type === "public")) {
+        seasons.push("HolidaySale");
+    }
+    // Sorted from most client profit to least client profit
+    return seasons.length ? (getSeasonalDiscountsSortedByModifierPercent().find((season) => seasons.includes(season)) ?? null) : null;
 };

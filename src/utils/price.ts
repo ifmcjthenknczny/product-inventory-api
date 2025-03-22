@@ -93,7 +93,13 @@ const getSeasonalDiscountsWithCategoryLimit = (): (keyof typeof SEASONAL_DISCOUN
         .map(([key]) => key as keyof typeof SEASONAL_DISCOUNTS);
 };
 
-const findHighestDiscountCategories = (orderProducts: Order["products"], productLookupObject: ProductLookupObject, categoryLimit: number) => {
+export const getSeasonalDiscountsSortedByModifierPercent = () => {
+    return (Object.keys(SEASONAL_DISCOUNTS) as Season[]).sort(
+        (a, b) => SEASONAL_DISCOUNTS[b].modifierPercent - SEASONAL_DISCOUNTS[a].modifierPercent,
+    );
+};
+
+export const findHighestDiscountCategories = (orderProducts: Order["products"], productLookupObject: ProductLookupObject, categoryLimit: number) => {
     const categoriesByDiscountedValue = orderProducts.reduce<Record<number, number>>((acc, orderProduct) => {
         const categoryId = productLookupObject[orderProduct.productId]?.categoryId;
         if (categoryId) {
