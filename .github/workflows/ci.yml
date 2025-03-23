@@ -3,10 +3,10 @@ name: CI
 on:
     push:
         branches:
-            - '*'
+            - '**'
 
 jobs:
-    build:
+    ci:
         runs-on: ubuntu-latest
         timeout-minutes: 5
 
@@ -18,13 +18,16 @@ jobs:
               run: npm install -g yarn
 
             - name: Install dependencies
-              run: yarn
+              run: yarn install --frozen-lockfile
 
             - name: Lint
               run: yarn lint
 
             - name: Build
               run: yarn build
+
+            - name: Set timezone
+              run: echo "TZ=Europe/Warsaw" >> $GITHUB_ENV
 
             - name: Test
               run: yarn test

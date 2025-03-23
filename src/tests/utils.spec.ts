@@ -31,17 +31,17 @@ const productLookupObject = {
 
 describe("Holiday Utils - determineSeason", () => {
     it("should return BlackFriday for Black Friday date", () => {
-        const blackFridayDate = DateTime.fromISO("2025-11-28");
+        const blackFridayDate = DateTime.fromISO("2025-11-28").setZone("Europe/Warsaw");
         expect(determineSeason(blackFridayDate)).toBe("BlackFriday");
     });
 
     it("should return HolidaySale for public holidays", () => {
-        const holidayDate = DateTime.fromISO("2025-12-25");
+        const holidayDate = DateTime.fromISO("2025-12-25").setZone("Europe/Warsaw");
         expect(determineSeason(holidayDate)).toBe("HolidaySale");
     });
 
     it("should return null for normal days", () => {
-        const normalDate = DateTime.fromISO("2025-07-10");
+        const normalDate = DateTime.fromISO("2025-07-10").setZone("Europe/Warsaw");
         expect(determineSeason(normalDate)).toBeNull();
     });
 });
