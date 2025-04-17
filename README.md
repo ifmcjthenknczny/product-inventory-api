@@ -243,4 +243,4 @@ Tests are also automatically executed as part of the Continuous Integration (CI)
 This work is licensed under a [Creative Commons Attribution-NonCommercial 4.0 International License](https://creativecommons.org/licenses/by-nc/4.0/).
 
 ## Author
-[Maciej Konieczny](https://github.com/ifmcjthenknczny/)]
+[Maciej Konieczny](https://github.com/ifmcjthenknczny/)
