@@ -2,8 +2,6 @@
 
 This project is a RESTful API designed to manage an inventory of products, handle stock levels, and process orders efficiently using Node.js and Express.js. The system follows the CQRS pattern and implements business logic for stock management, order processing and creation, and discount calculations.
 
-> **Note**: The entire application is on the `feature/api` branch.
-
 ## Table of contents
 - [Features](#features)
 - [Technology Stack](#technology-stack)
@@ -245,4 +243,4 @@ Tests are also automatically executed as part of the Continuous Integration (CI)
 This work is licensed under a [Creative Commons Attribution-NonCommercial 4.0 International License](https://creativecommons.org/licenses/by-nc/4.0/).
 
 ## Author
-[Maciej Konieczny](https://github.com/ifmcjthenknczny/)]
+[Maciej Konieczny](https://github.com/ifmcjthenknczny/)

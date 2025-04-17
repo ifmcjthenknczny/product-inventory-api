@@ -1,11 +1,26 @@
-import compression from "compression";
 import cors from "cors";
-import express from "express";
+import express, { Request, Response } from "express";
 import morgan from "morgan";
-import router from "./routes/index.route";
+import compression from "compression";
+import productRoutes from "./routes/product.route";
+import orderRoutes from "./routes/order.route";
+import { dbConnect } from "./config/database.config";
+import bodyParser from "body-parser";
+import Joi from "joi";
+import dotenv from "dotenv";
+import validateSchema from "./utils/validate";
 
-// configuration
+dotenv.config();
+
+const envSchema = Joi.object({
+    MONGO_URI: Joi.string().required(),
+    PORT: Joi.number().integer().default(3000),
+}).unknown(true);
+
+validateSchema(process.env, envSchema);
+
 const app = express();
+app.use(bodyParser.json());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static("public"));
@@ -13,10 +28,23 @@ app.use(cors());
 app.use(morgan("dev"));
 app.use(compression());
 
-// routes
-app.use("/api", router);
-app.all("*", (req, res) => {
-	return res.status(404).json({ success: false, message: "404 not found!" });
+app.use("/products", productRoutes);
+app.use("/orders", orderRoutes);
+app.all("*", (req: Request, res: Response) => {
+    res.status(404).json({ error: "Page not found." });
 });
+
+if (process.env.NODE_ENV !== "test") {
+    app.listen(process.env.PORT, () => {
+        // eslint-disable-next-line no-console
+        console.log(`Server listening on port http://localhost:${process.env.PORT}`);
+    });
+
+    dbConnect().catch((err) => {
+        // eslint-disable-next-line no-console
+        console.error("Database connection failed:", err);
+        process.exit(1);
+    });
+}
 
 export default app;

@@ -129,6 +129,6 @@ dist
 .yarn/install-state.gz
 .pnp.*
 
-*.patch
-todo.txt
 *.pdf
+todo.txt
+*.patch
